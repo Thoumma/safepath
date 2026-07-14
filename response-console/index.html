@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SafeZone Response Console</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161d26; --panel2:#1d2633; --line:#28323f;
+    --txt:#e6edf3; --muted:#8b98a5; --accent:#3b82f6; --accent2:#1d4ed8;
+    --red:#ef4444; --amber:#f59e0b; --green:#22c55e; --purple:#a855f7;
+    --chip:#243040;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",Roboto,"Noto Sans Lao",system-ui,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden}
+  .app{display:grid;grid-template-columns:210px 1fr;height:100vh}
+
+  /* Sidebar */
+  .side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+  .brand{padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+  .brand .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px}
+  .shield{width:26px;height:26px;background:linear-gradient(145deg,var(--accent),var(--accent2));border-radius:7px;display:grid;place-items:center;font-size:14px}
+  .brand small{color:var(--muted);font-size:11px;display:block;margin-top:4px;margin-left:35px}
+  .nav{padding:10px 8px;flex:1}
+  .nav button{width:100%;text-align:left;background:none;border:none;color:var(--muted);padding:11px 12px;border-radius:8px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:2px}
+  .nav button:hover{background:var(--panel2);color:var(--txt)}
+  .nav button.active{background:var(--accent2);color:#fff}
+  .nav .badge{margin-left:auto;background:var(--red);color:#fff;border-radius:20px;font-size:11px;padding:1px 7px;font-weight:700}
+  .who{padding:14px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .who b{color:var(--txt);display:block;font-size:13px}
+
+  /* Main */
+  .main{overflow-y:auto;position:relative}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,20,25,.9);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 24px;display:flex;align-items:center;gap:14px}
+  .topbar h1{font-size:18px;font-weight:600}
+  .topbar .sub{color:var(--muted);font-size:12px}
+  .live{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--green)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  .content{padding:22px 24px}
+  .view{display:none}.view.active{display:block}
+
+  /* Cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .stat .lbl{color:var(--muted);font-size:12px;margin-bottom:8px}
+  .stat .num{font-size:26px;font-weight:700}
+  .stat .num small{font-size:13px;font-weight:400;color:var(--muted)}
+  .stat.crit .num{color:var(--red)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .card h3{font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .card h3 .lao{color:var(--muted);font-weight:400;font-size:12px}
+
+  /* Inbox / case list */
+  .caselist{display:flex;flex-direction:column;gap:10px}
+  .caserow{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.12s}
+  .caserow:hover{border-color:var(--accent);background:var(--panel2)}
+  .caserow.sev-crit{border-left-color:var(--red)}
+  .caserow.sev-high{border-left-color:var(--amber)}
+  .caserow.sev-med{border-left-color:var(--accent)}
+  .caserow.resolved{opacity:.55}
+  .avatar{width:42px;height:42px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;font-weight:700;font-size:15px;flex-shrink:0;border:1px solid var(--line)}
+  .caserow .info{flex:1;min-width:0}
+  .caserow .info .top{display:flex;align-items:center;gap:8px}
+  .caserow .info .name{font-weight:600;font-size:15px}
+  .caserow .info .meta{color:var(--muted);font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tag{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;white-space:nowrap}
+  .tag.crit{background:rgba(239,68,68,.15);color:#fca5a5}
+  .tag.high{background:rgba(245,158,11,.15);color:#fcd34d}
+  .tag.med{background:rgba(59,130,246,.15);color:#93c5fd}
+  .tag.new{background:rgba(239,68,68,.2);color:#fca5a5}
+  .tag.prog{background:rgba(245,158,11,.15);color:#fcd34d}
+  .tag.done{background:rgba(34,197,94,.15);color:#86efac}
+  .tag.route{background:var(--chip);color:var(--muted)}
+  .caserow .when{text-align:right;font-size:12px;color:var(--muted);flex-shrink:0}
+  .caserow .when .big{font-size:15px;color:var(--txt);font-weight:600}
+
+  /* Case detail */
+  .backbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:16px}
+  .backbtn:hover{border-color:var(--accent)}
+  .case-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px}
+  .case-head .avatar{width:56px;height:56px;font-size:20px}
+  .case-head h2{font-size:22px}
+  .case-head .id{color:var(--muted);font-size:12px;font-family:monospace;margin-top:2px}
+  .case-head .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{border:none;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .btn.primary{background:var(--accent2);color:#fff}
+  .btn.primary:hover{background:var(--accent)}
+  .btn.ok{background:var(--green);color:#06280f}
+  .btn.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .btn.danger{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+  .case-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+  #caseMap{height:280px;border-radius:10px;border:1px solid var(--line);margin-bottom:12px}
+  .kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .kv:last-child{border:none}
+  .kv .k{color:var(--muted)}
+  .kv .v{font-weight:500;text-align:right}
+  .passport{display:flex;gap:14px;align-items:center;background:var(--panel2);border-radius:10px;padding:12px;margin-top:8px}
+  .passport .pic{width:70px;height:88px;border-radius:6px;background:linear-gradient(160deg,#334155,#1e293b);display:grid;place-items:center;font-size:26px;flex-shrink:0;border:1px solid var(--line)}
+  .locked{font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px;margin-top:6px}
+
+  /* Timeline */
+  .timeline{position:relative;padding-left:22px}
+  .timeline::before{content:"";position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--line)}
+  .tl{position:relative;padding-bottom:16px}
+  .tl:last-child{padding-bottom:0}
+  .tl::before{content:"";position:absolute;left:-22px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+  .tl.done::before{background:var(--green)}
+  .tl.now::before{background:var(--red);animation:pulse 1.8s infinite}
+  .tl .t{font-size:12px;color:var(--muted)}
+  .tl .d{font-size:13px;margin-top:2px}
+  .tl .by{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* Connections */
+  .conns{display:flex;flex-direction:column;gap:10px}
+  .conn{display:flex;align-items:center;gap:11px;background:var(--panel2);border-radius:9px;padding:10px 12px}
+  .conn .ic{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:16px;flex-shrink:0}
+  .conn .ic.v{background:rgba(168,85,247,.15)}
+  .conn .ic.c{background:rgba(34,197,94,.15)}
+  .conn .ic.e{background:rgba(59,130,246,.15)}
+  .conn .ic.r{background:rgba(245,158,11,.15)}
+  .conn .cinfo{flex:1;min-width:0}
+  .conn .cinfo .n{font-size:13px;font-weight:600}
+  .conn .cinfo .s{font-size:11px;color:var(--muted)}
+  .conn .call{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer}
+  .conn .call:hover{border-color:var(--accent)}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}
+  td{padding:11px 12px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border:none}
+  tbody tr:hover{background:var(--panel2)}
+  .search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
+  .search::placeholder{color:var(--muted)}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--accent);color:var(--txt);padding:12px 20px;border-radius:10px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5);transition:.3s;z-index:100;opacity:0}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  @media(max-width:1000px){.case-grid,.grid2,.charts{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><div class="shield">🛡️</div> SafeZone</div>
+      <small>Response Console · ສູນຕອບໂຕ້</small>
+    </div>
+    <nav class="nav">
+      <button data-view="dash" class="active">📊 <span>Dashboard</span></button>
+      <button data-view="inbox">🚨 <span>SOS Inbox</span><span class="badge" id="inboxBadge">3</span></button>
+      <button data-view="citizens">👥 <span>Citizens</span></button>
+      <button data-view="reports">📈 <span>Reports</span></button>
+    </nav>
+    <div class="who">
+      <b>ສະຖານທູດ ລາວ · Bangkok</b>
+      Duty Officer — Somsak V.
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="sub" id="pageSub">ພາບລວມ — ເຫດການ ແລະ ການຕອບໂຕ້</div>
+      </div>
+      <div class="live"><span class="dot"></span> LIVE · ຮັບຂໍ້ມູນ real-time</div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <section class="view active" id="dash">
+        <div class="stats">
+          <div class="stat crit"><div class="lbl">🚨 ເຫດການດ່ວນ · Active SOS</div><div class="num">3</div></div>
+          <div class="stat"><div class="lbl">📁 ກຳລັງດຳເນີນ · Open cases</div><div class="num">7</div></div>
+          <div class="stat"><div class="lbl">⏱️ ເວລາຕອບໂຕ້ສະເລ່ຍ · Avg response</div><div class="num">4.2<small> min</small></div></div>
+          <div class="stat"><div class="lbl">✅ ແກ້ໄຂແລ້ວ (30 ວັນ)</div><div class="num">42</div></div>
+        </div>
+        <div class="grid2">
+          <div>
+            <div class="card">
+              <h3>🚨 ເຫດການດ່ວນ ຕ້ອງການ ຕອບໂຕ້ <span class="lao">Needs response now</span></h3>
+              <div class="caselist" id="dashUrgent"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <h3>🗺️ ແຜນທີ່ ເຫດການ <span class="lao">Incident map</span></h3>
+              <div id="dashMap" style="height:300px;border-radius:10px;border:1px solid var(--line)"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INBOX -->
+      <section class="view" id="inbox">
+        <div class="card">
+          <h3>🚨 ສາຍ SOS ເຂົ້າ <span class="lao">Incoming SOS — newest first</span></h3>
+          <div class="caselist" id="inboxList"></div>
+        </div>
+      </section>
+
+      <!-- CASE DETAIL -->
+      <section class="view" id="case">
+        <button class="backbtn" onclick="go('inbox')">← ກັບໄປ Inbox</button>
+        <div class="case-head">
+          <div class="avatar" id="cAvatar">?</div>
+          <div>
+            <h2 id="cName">—</h2>
+            <div class="id" id="cId">—</div>
+          </div>
+          <div class="actions" id="cActions"></div>
+        </div>
+        <div class="case-grid">
+          <div>
+            <div class="card">
+              <h3>🗺️ ຕຳແໜ່ງ ປັດຈຸບັນ <span class="lao">Live location</span></h3>
+              <div id="caseMap"></div>
+              <div class="kv"><span class="k">GPS</span><span class="v" id="cGps">—</span></div>
+              <div class="kv"><span class="k">ໄກ ຈາກ ສະຖານທູດ</span><span class="v" id="cDist">—</span></div>
+              <div class="kv"><span class="k">ອັບເດດຫຼ້າສຸດ</span><span class="v" id="cLocTime">—</span></div>
+            </div>
+            <div class="card">
+              <h3>🔗 ການເຊື່ອມຕໍ່ ຂອງ ເຄສ <span class="lao">Everything linked to this case</span></h3>
+              <div class="conns" id="cConns"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <h3>🪪 ຂໍ້ມູນ ຜູ້ປະສົບໄພ <span class="lao">Victim & passport</span></h3>
+              <div class="kv"><span class="k">ຊື່</span><span class="v" id="dName">—</span></div>
+              <div class="kv"><span class="k">ໜັງສືຜ່ານແດນ</span><span class="v" id="dPass">—</span></div>
+              <div class="kv"><span class="k">ວັນເກີດ</span><span class="v" id="dDob">—</span></div>
+              <div class="kv"><span class="k">ໂທລະສັບ</span><span class="v" id="dPhone">—</span></div>
+              <div class="passport">
+                <div class="pic">🪪</div>
+                <div>
+                  <div style="font-weight:600;font-size:13px">Passport scan</div>
+                  <div style="font-size:12px;color:var(--muted);margin-top:3px">ສຳເນົາ ເຂົ້າລະຫັດ AES-256</div>
+                  <div class="locked">🔒 Decrypt & view <span id="dPass2"></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>⏱️ ໄທມ໌ໄລນ໌ ການຕອບໂຕ້ <span class="lao">Response timeline</span></h3>
+              <div class="timeline" id="cTimeline"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CITIZENS -->
+      <section class="view" id="citizens">
+        <div class="card">
+          <h3>👥 ພົນລະເມືອງ ລົງທະບຽນ <span class="lao">Registered travellers</span></h3>
+          <input class="search" id="citSearch" placeholder="🔍 ຄົ້ນຫາ ຊື່ / ໜັງສືຜ່ານແດນ / ເມືອງ..." oninput="renderCitizens()" />
+          <table>
+            <thead><tr><th>ຊື່ · Name</th><th>Passport</th><th>ຢູ່ · Location</th><th>ສະຖານະ</th><th>Trusted Contact</th></tr></thead>
+            <tbody id="citBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="view" id="reports">
+        <div class="stats">
+          <div class="stat"><div class="lbl">ເຫດການ ທັງໝົດ (2026)</div><div class="num">218</div></div>
+          <div class="stat"><div class="lbl">ອັດຕາ ແກ້ໄຂ ສຳເລັດ</div><div class="num">94<small>%</small></div></div>
+          <div class="stat"><div class="lbl">ເວລາ ຕອບໂຕ້ ດີສຸດ</div><div class="num">1.1<small> min</small></div></div>
+          <div class="stat"><div class="lbl">ພັນທະມິດ ໃຊ້ງານ</div><div class="num">3</div></div>
+        </div>
+        <div class="charts">
+          <div class="card"><h3>📊 ເຫດການ ຕາມ ປະເພດ <span class="lao">Incidents by type</span></h3><canvas id="chType" height="200"></canvas></div>
+          <div class="card"><h3>📈 ເຫດການ ຕໍ່ ເດືອນ <span class="lao">Cases per month</span></h3><canvas id="chMonth" height="200"></canvas></div>
+          <div class="card"><h3>🌏 ຕາມ ປະເທດ <span class="lao">By country</span></h3><canvas id="chCountry" height="200"></canvas></div>
+          <div class="card"><h3>⏱️ ເວລາ ຕອບໂຕ້ (ນາທີ) <span class="lao">Response time trend</span></h3><canvas id="chResp" height="200"></canvas></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- MOCK DATA ---------- */
+const CASES = [
+  {
+    id:"SOS-2026-0713-014", name:"ນາງ ຄຳຫລ້າ ພົມມະ", initials:"ຄ",
+    sev:"crit", status:"new", route:"ສະຖານທູດ Bangkok",
+    type:"ອຸບັດຕິເຫດ / Accident", city:"Bangkok, TH", ago:"2 ນທ",
+    lat:13.7460, lng:100.5340, gps:"13.7460, 100.5340", dist:"3.2 km",
+    passport:"P1234567", dob:"1994-03-12", phone:"+8562099887766",
+    contacts:[
+      {t:"c", n:"ທ. ບຸນມີ ພົມມະ (ຜົວ)", s:"Trusted contact · +8562055443322"},
+      {t:"e", n:"ສະຖານທູດ ລາວ Bangkok", s:"ຮັບຜິດຊອບ · +6622221234"},
+      {t:"r", n:"ຍັງ ບໍ່ທັນ ມອບໝາຍ", s:"Assign responder →"}
+    ],
+    timeline:[
+      {c:"now", t:"14:32 · 2 ນທ ຜ່ານມາ", d:"🚨 ກົດ SOS ຈາກ ແອັບ SafeZone", by:"ອັດຕະໂນມັດ ຈາກ ອຸປະກອນ"},
+      {c:"", t:"14:32", d:"📍 ສົ່ງ GPS + ສຳເນົາ passport ໃຫ້ Trusted Contact", by:"ລະບົບ"},
+      {c:"", t:"14:33", d:"📞 Trusted contact ຮັບຮູ້ ແລ້ວ", by:"ບຸນມີ ພົມມະ"}
+    ]
+  },
+  {
+    id:"SOS-2026-0713-013", name:"ທ. ສົມພອນ ໄຊຍະ", initials:"ສ",
+    sev:"high", status:"prog", route:"VFI Field Team",
+    type:"ຖືກ ຫລອກລວງ / Trafficking risk", city:"Poipet, KH", ago:"18 ນທ",
+    lat:13.6560, lng:102.5560, gps:"13.6560, 102.5560", dist:"ຊາຍແດນ",
+    passport:"P7788990", dob:"1990-07-01", phone:"+8562077665544",
+    contacts:[
+      {t:"c", n:"ນາງ ວັນນາ ໄຊຍະ (ເອື້ອຍ)", s:"Trusted contact · +8562011223344"},
+      {t:"e", n:"VFI Anti-Trafficking Unit", s:"ຮັບຜິດຊອບ · field team #2"},
+      {t:"r", n:"ທ. Decha (VFI responder)", s:"ກຳລັງ ເດີນທາງ ໄປ ຫາ · ETA 25 ນທ"}
+    ],
+    timeline:[
+      {c:"done", t:"14:16", d:"🚨 SOS ຈາກ ແອັບ", by:"ອຸປະກອນ"},
+      {c:"done", t:"14:18", d:"🔁 ສົ່ງຕໍ່ ຫາ VFI (ຄາດ ຄ້າມະນຸດ)", by:"Duty officer"},
+      {c:"now", t:"14:26", d:"🚗 Responder Decha ຮັບເຄສ ແລະ ກຳລັງ ໄປ", by:"VFI"},
+    ]
+  },
+  {
+    id:"SOS-2026-0713-011", name:"ນາງ ມະນີ ຈັນທະວົງ", initials:"ມ",
+    sev:"med", status:"prog", route:"SafePath NGO",
+    type:"ເຈັບປ່ວຍ / Medical", city:"Kuala Lumpur, MY", ago:"41 ນທ",
+    lat:3.1490, lng:101.6980, gps:"3.1490, 101.6980", dist:"12 km",
+    passport:"P4455667", dob:"1998-11-22", phone:"+8562088990011",
+    contacts:[
+      {t:"c", n:"ນາງ ດາລາ (ໝູ່)", s:"Trusted contact · +601122334455"},
+      {t:"e", n:"SafePath KL Shelter", s:"ຮັບຜິດຊອບ · shelter coordinator"},
+      {t:"r", n:"ທ. Aziz (SafePath)", s:"ພາ ໄປ ໂຮງໝໍ ແລ້ວ"}
+    ],
+    timeline:[
+      {c:"done", t:"13:53", d:"🚨 SOS ຈາກ ແອັບ", by:"ອຸປະກອນ"},
+      {c:"done", t:"13:55", d:"🔁 ສົ່ງຕໍ່ ຫາ SafePath KL", by:"Duty officer"},
+      {c:"done", t:"14:10", d:"🏥 ພາ ໄປ ໂຮງໝໍ Gleneagles", by:"Aziz"},
+      {c:"now", t:"14:20", d:"🩺 ກຳລັງ ກວດ — ອາການ ຄົງທີ່", by:"SafePath"}
+    ]
+  },
+  {
+    id:"SOS-2026-0712-009", name:"ທ. ໄກສອນ ວົງສາ", initials:"ໄ",
+    sev:"med", status:"done", route:"ສະຖານທູດ Bangkok",
+    type:"ເອກະສານ ເສຍ / Lost documents", city:"Chiang Mai, TH", ago:"1 ວັນ",
+    lat:18.7880, lng:98.9850, gps:"18.7880, 98.9850", dist:"—",
+    passport:"P2233445", dob:"1985-05-30", phone:"+8562066554433",
+    contacts:[
+      {t:"c", n:"ນາງ ພອນ (ພັນລະຍາ)", s:"Trusted contact"},
+      {t:"e", n:"ສະຖານທູດ ລາວ Bangkok", s:"ອອກ ເອກະສານ ຊົ່ວຄາວ ແລ້ວ"},
+    ],
+    timeline:[
+      {c:"done", t:"ມື້ວານ 09:10", d:"🚨 SOS — passport ຖືກ ລັກ", by:"ອຸປະກອນ"},
+      {c:"done", t:"ມື້ວານ 11:00", d:"📄 ອອກ Emergency Travel Doc", by:"Consular"},
+      {c:"done", t:"ມື້ວານ 15:30", d:"✅ ປິດ ເຄສ", by:"Somsak V."}
+    ]
+  }
+];
+
+const CITIZENS = [
+  {n:"ນາງ ຄຳຫລ້າ ພົມມະ", p:"P1234567", loc:"Bangkok, TH", st:"🚨 SOS", c:"ບຸນມີ ພົມມະ"},
+  {n:"ທ. ສົມພອນ ໄຊຍະ", p:"P7788990", loc:"Poipet, KH", st:"🚨 SOS", c:"ວັນນາ ໄຊຍະ"},
+  {n:"ນາງ ມະນີ ຈັນທະວົງ", p:"P4455667", loc:"Kuala Lumpur, MY", st:"⚠️ ຕິດຕາມ", c:"ດາລາ"},
+  {n:"ທ. ໄກສອນ ວົງສາ", p:"P2233445", loc:"Chiang Mai, TH", st:"✅ ປອດໄພ", c:"ພອນ"},
+  {n:"ນາງ ສີດາ ແກ້ວ", p:"P5566778", loc:"Singapore, SG", st:"✅ ປອດໄພ", c:"ໂຄ້ ແກ້ວ"},
+  {n:"ທ. ຄຳຜາຍ ພິມມະສອນ", p:"P9900112", loc:"Seoul, KR", st:"✅ ປອດໄພ", c:"ນາງ ບົວ"},
+  {n:"ນາງ ໄໝ ພັນທະ", p:"P3344556", loc:"Tokyo, JP", st:"✅ ປອດໄພ", c:"ສົມສີ"},
+  {n:"ທ. ອຳພອນ ລັດຕະນະ", p:"P6677889", loc:"Dubai, AE", st:"⚠️ ຕິດຕາມ", c:"ວິໄລ"}
+];
+
+/* ---------- NAV ---------- */
+const TITLES = {
+  dash:["Dashboard","ພາບລວມ — ເຫດການ ແລະ ການຕອບໂຕ້"],
+  inbox:["SOS Inbox","ສາຍ SOS ເຂົ້າ — ຮຽງ ຕາມ ໃໝ່ສຸດ"],
+  case:["Case Helper","ໜ້າ ຊ່ວຍ ຈັດການ ເຄສ — ເຫັນ ທຸກຢ່າງ ໃນ ໜ້າ ດຽວ"],
+  citizens:["Citizens","ພົນລະເມືອງ ລົງທະບຽນ"],
+  reports:["Reports","ສະຖິຕິ ແລະ ລາຍງານ"]
+};
+let dashMap, caseMap, charted=false;
+function go(v){
+  document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
+  document.getElementById(v).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('pageTitle').textContent=TITLES[v][0];
+  document.getElementById('pageSub').textContent=TITLES[v][1];
+  if(v==='dash' && dashMap) setTimeout(()=>dashMap.invalidateSize(),50);
+  if(v==='reports') drawCharts();
+  document.querySelector('.main').scrollTop=0;
+}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.view));
+
+/* ---------- RENDER CASE ROWS ---------- */
+function sevTag(s){return s==='crit'?'<span class="tag crit">ດ່ວນ CRITICAL</span>':s==='high'?'<span class="tag high">ສູງ HIGH</span>':'<span class="tag med">MEDIUM</span>'}
+function statTag(s){return s==='new'?'<span class="tag new">ໃໝ່ NEW</span>':s==='prog'?'<span class="tag prog">ກຳລັງ ຊ່ວຍ</span>':'<span class="tag done">ແກ້ໄຂ ແລ້ວ</span>'}
+function caseRow(c){
+  return `<div class="caserow sev-${c.sev} ${c.status==='done'?'resolved':''}" onclick="openCase('${c.id}')">
+    <div class="avatar">${c.initials}</div>
+    <div class="info">
+      <div class="top"><span class="name">${c.name}</span>${sevTag(c.sev)}${statTag(c.status)}</div>
+      <div class="meta">${c.type} · 📍 ${c.city} · <span class="tag route">→ ${c.route}</span></div>
+    </div>
+    <div class="when"><div class="big">${c.ago}</div><div>${c.id.slice(-3)}</div></div>
+  </div>`;
+}
+function renderLists(){
+  document.getElementById('inboxList').innerHTML = CASES.map(caseRow).join('');
+  document.getElementById('dashUrgent').innerHTML = CASES.filter(c=>c.status!=='done').map(caseRow).join('');
+  document.getElementById('inboxBadge').textContent = CASES.filter(c=>c.status==='new').length;
+}
+
+/* ---------- CASE DETAIL ---------- */
+const connIcon={v:'🧍',c:'🤝',e:'🏛️',r:'🚑'};
+function openCase(id){
+  const c=CASES.find(x=>x.id===id); if(!c) return;
+  go('case');
+  document.getElementById('cAvatar').textContent=c.initials;
+  document.getElementById('cName').textContent=c.name;
+  document.getElementById('cId').textContent=c.id+" · "+c.type;
+  document.getElementById('cGps').textContent=c.gps;
+  document.getElementById('cDist').textContent=c.dist;
+  document.getElementById('cLocTime').textContent=c.ago+" ຜ່ານມາ";
+  document.getElementById('dName').textContent=c.name;
+  document.getElementById('dPass').textContent=c.passport;
+  document.getElementById('dPass2').textContent="("+c.passport+")";
+  document.getElementById('dDob').textContent=c.dob;
+  document.getElementById('dPhone').textContent=c.phone;
+  // actions
+  const done=c.status==='done';
+  document.getElementById('cActions').innerHTML = done
+    ? `<span class="tag done" style="align-self:center">✅ ເຄສ ນີ້ ປິດ ແລ້ວ</span><button class="btn ghost" onclick="toast('📄 ເປີດ ບົດ ລາຍງານ ເຄສ')">📄 ລາຍງານ</button>`
+    : `<button class="btn primary" onclick="toast('👤 ມອບໝາຍ ຜູ້ຮັບຜິດຊອບ ແລ້ວ')">👤 ມອບໝາຍ Responder</button>
+       <button class="btn ghost" onclick="toast('📞 ກຳລັງ ໂທ ຫາ ຜູ້ປະສົບໄພ...')">📞 ໂທ</button>
+       <button class="btn ghost" onclick="toast('🔁 ສົ່ງຕໍ່ ເຄສ ໄປ ພັນທະມິດ')">🔁 ສົ່ງຕໍ່</button>
+       <button class="btn ok" onclick="toast('✅ ໝາຍ ວ່າ ແກ້ໄຂ ແລ້ວ')">✅ ແກ້ໄຂ ແລ້ວ</button>`;
+  // connections
+  document.getElementById('cConns').innerHTML =
+    `<div class="conn"><div class="ic v">${connIcon.v}</div><div class="cinfo"><div class="n">${c.name}</div><div class="s">ຜູ້ປະສົບໄພ · Victim · ${c.passport}</div></div></div>`+
+    c.contacts.map(k=>`<div class="conn"><div class="ic ${k.t}">${connIcon[k.t]}</div><div class="cinfo"><div class="n">${k.n}</div><div class="s">${k.s}</div></div><button class="call" onclick="toast('📞 ${k.n.replace(/'/g,'')}')">ໂທ</button></div>`).join('');
+  // timeline
+  document.getElementById('cTimeline').innerHTML = c.timeline.map(t=>`<div class="tl ${t.c}"><div class="t">${t.t}</div><div class="d">${t.d}</div><div class="by">— ${t.by}</div></div>`).join('');
+  // map
+  setTimeout(()=>{
+    if(!caseMap){caseMap=L.map('caseMap',{zoomControl:true}).setView([c.lat,c.lng],13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(caseMap);
+      caseMap._m=L.marker([c.lat,c.lng]).addTo(caseMap);
+    } else {caseMap.setView([c.lat,c.lng],13);caseMap._m.setLatLng([c.lat,c.lng]);}
+    caseMap._m.bindPopup("🚨 "+c.name).openPopup();
+    caseMap.invalidateSize();
+  },60);
+}
+
+/* ---------- CITIZENS ---------- */
+function renderCitizens(){
+  const q=(document.getElementById('citSearch').value||'').toLowerCase();
+  document.getElementById('citBody').innerHTML = CITIZENS.filter(c=>
+    (c.n+c.p+c.loc).toLowerCase().includes(q)).map(c=>
+    `<tr><td>${c.n}</td><td style="font-family:monospace">${c.p}</td><td>${c.loc}</td><td>${c.st}</td><td style="color:var(--muted)">${c.c}</td></tr>`).join('');
+}
+
+/* ---------- MAPS ---------- */
+function initDashMap(){
+  dashMap=L.map('dashMap',{zoomControl:true}).setView([10,102],3);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(dashMap);
+  const colors={crit:'#ef4444',high:'#f59e0b',med:'#3b82f6'};
+  CASES.forEach(c=>{
+    L.circleMarker([c.lat,c.lng],{radius:9,color:'#fff',weight:1.5,fillColor:colors[c.sev],fillOpacity:.85})
+     .addTo(dashMap).bindPopup(`<b>${c.name}</b><br>${c.type}<br>${c.city}`);
+  });
+}
+
+/* ---------- CHARTS ---------- */
+function drawCharts(){
+  if(charted) return; charted=true;
+  const g='#8b98a5', grid='rgba(255,255,255,.06)';
+  Chart.defaults.color=g; Chart.defaults.font.family="Segoe UI, Noto Sans Lao, sans-serif";
+  new Chart(chType,{type:'doughnut',data:{labels:['Accident','Trafficking','Medical','Lost docs','Other'],
+    datasets:[{data:[54,38,61,42,23],backgroundColor:['#ef4444','#a855f7','#22c55e','#3b82f6','#f59e0b'],borderColor:'#161d26',borderWidth:2}]},
+    options:{plugins:{legend:{position:'right'}}}});
+  new Chart(chMonth,{type:'bar',data:{labels:['ກ.ພ','ມີ','ເມ','ພ','ມິ','ກ.ລ'],
+    datasets:[{label:'Cases',data:[28,35,31,44,39,41],backgroundColor:'#3b82f6',borderRadius:5}]},
+    options:{scales:{y:{grid:{color:grid}},x:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+  new Chart(chCountry,{type:'bar',indexAxis:'y',data:{labels:['Thailand','Malaysia','Cambodia','S.Korea','Others'],
+    datasets:[{data:[92,44,38,25,19],backgroundColor:'#22c55e',borderRadius:5}]},
+    options:{scales:{x:{grid:{color:grid}},y:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+  new Chart(chResp,{type:'line',data:{labels:['ກ.ພ','ມີ','ເມ','ພ','ມິ','ກ.ລ'],
+    datasets:[{label:'min',data:[6.8,6.1,5.4,4.9,4.5,4.2],borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.12)',fill:true,tension:.35}]},
+    options:{scales:{y:{grid:{color:grid}},x:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+}
+
+/* ---------- TOAST ---------- */
+let tmr;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tmr);tmr=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ---------- INIT ---------- */
+renderLists(); renderCitizens(); initDashMap();
+</script>
+</body>
+</html>
