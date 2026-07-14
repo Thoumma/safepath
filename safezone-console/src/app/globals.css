@@ -1,0 +1,334 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   SafeZone Response Console — Design Tokens
+   Philosophy: Swiss / International Typographic
+   Derived from .design/response-console/DESIGN_BRIEF.md
+
+   Rules of the system:
+   - Color is information, never decoration. Red means an active emergency.
+   - Structure is carried by rules (lines) and alignment, not shadows.
+   - Scale contrast is dramatic: labels are small, numbers are large.
+   ========================================================================= */
+
+@layer base {
+  :root {
+    /* --- Surfaces --------------------------------------------------------
+       Warm paper, mirroring the SafeZone mobile app. #F6F4EF */
+    --background: 43 33% 95%;
+    --foreground: 34 15% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 34 15% 14%;
+
+    /* Navy #15324E — structure, chrome, primary action. Never "urgency". */
+    --primary: 208 58% 19%;
+    --primary-foreground: 43 33% 95%;
+    --secondary: 208 58% 19%;
+    --secondary-foreground: 43 33% 95%;
+
+    --muted: 40 20% 92%;
+    --muted-foreground: 34 12% 34%; /* darkened from 38% → 4.6:1 on paper (AA) */
+    --accent: 40 20% 90%;
+    --accent-foreground: 208 58% 19%;
+
+    /* --- Signal colors ---------------------------------------------------
+       Each signal is a PAIR:
+         --x        surface/rule value (saturated, for bars, fills, chart marks)
+         --x-ink    text value, contrast-checked ≥4.5:1 on --background
+       Never use the surface value for text. That is the bug that fails AA. */
+
+    /* CRITICAL — signal red #C42B33. The only red in the system. */
+    --critical: 357 64% 47%;
+    --critical-ink: 357 68% 41%;
+    --critical-foreground: 0 0% 100%;
+    --destructive: var(--critical);
+    --destructive-foreground: 0 0% 100%;
+
+    /* HIGH — signal amber. Ink is deep enough to clear AA on paper.
+       Note the foreground is INK, not white: white on amber is 2.96:1 and
+       fails AA. Dark-on-amber is 5.2:1. This is the trap every generic
+       amber "warning" badge falls into. */
+    --high: 32 92% 46%;
+    --high-ink: 30 92% 30%;
+    --high-foreground: 34 15% 14%;
+
+    /* MEDIUM — navy. Structural, not alarming. */
+    --medium: 208 58% 19%;
+    --medium-ink: 208 58% 19%;
+    --medium-foreground: 43 33% 95%;
+
+    /* LOW — neutral. Recedes. */
+    --low: 40 12% 62%;
+    --low-ink: 34 12% 34%;
+    --low-foreground: 34 15% 14%;
+
+    /* RESOLVED — trust emerald #2E7D5B. A good state, stated calmly. */
+    --success: 154 46% 34%;
+    --success-ink: 154 50% 27%;
+    --success-foreground: 0 0% 100%;
+
+    --info: 208 58% 19%;
+    --info-ink: 208 58% 19%;
+
+    /* --- Structure -------------------------------------------------------
+       Swiss builds depth with rules, not shadows. */
+    --border: 40 20% 86%;
+    --border-strong: 34 15% 14%;
+    --input: 40 20% 86%;
+    --ring: 208 58% 19%;
+
+    --rule-hairline: 1px;
+    --rule-medium: 2px;
+    --rule-heavy: 4px; /* severity bar on a case row */
+
+    /* Sharp. 12px rounding was the single most "generic SaaS" value in the
+       old system. Swiss is flat and squared; 2px is a printing tolerance,
+       not a style. */
+    --radius: 0.125rem;
+
+    /* --- Elevation -------------------------------------------------------
+       Deliberately near-zero. Only the focus ring is allowed to glow. */
+    --shadow-none: none;
+    --shadow-focus: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+    --shadow-overlay: 0 8px 24px -8px hsl(34 15% 14% / 0.18);
+    --surface-overlay: 34 15% 14%;
+
+    /* --- Typography ------------------------------------------------------
+       Lao (Noto Sans Lao) carries meaning. Latin/numerals ride on a
+       grotesque (Archivo). Mono (JetBrains Mono) for refs, coords, clocks —
+       anything the officer might read aloud over a phone. */
+    --font-lao: var(--font-noto-lao), "Phetsarath OT", sans-serif;
+    --font-sans: var(--font-archivo), var(--font-noto-lao), system-ui, sans-serif;
+    --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+
+    /* Dramatic ramp. Big jumps at the top so one number can dominate. */
+    --text-2xs: 0.6875rem; /* 11px — small-caps English annotation */
+    --text-xs: 0.75rem; /* 12px */
+    --text-sm: 0.875rem; /* 14px */
+    --text-base: 1rem; /* 16px — mobile body floor */
+    --text-lg: 1.25rem; /* 20px */
+    --text-xl: 1.75rem; /* 28px */
+    --text-2xl: 2.5rem; /* 40px */
+    --text-3xl: 3.5rem; /* 56px */
+    --text-4xl: 4.5rem; /* 72px — the New-SOS count, and nothing else */
+
+    --leading-tight: 1.05; /* display numerals */
+    --leading-snug: 1.25; /* headings */
+    --leading-normal: 1.5; /* Latin body */
+    --leading-lao: 1.75; /* Lao needs more room: tone marks stack above */
+
+    --tracking-tight: -0.02em; /* large display type only */
+    --tracking-normal: 0;
+    --tracking-wide: 0.08em; /* the small-caps English subhead */
+    --tracking-wider: 0.14em; /* nav / eyebrow labels */
+
+    --weight-normal: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+
+    /* --- Spacing (4px module) -------------------------------------------- */
+    --space-1: 0.25rem; /*  4px */
+    --space-2: 0.5rem; /*  8px */
+    --space-3: 0.75rem; /* 12px */
+    --space-4: 1rem; /* 16px */
+    --space-5: 1.5rem; /* 24px */
+    --space-6: 2rem; /* 32px */
+    --space-7: 3rem; /* 48px */
+    --space-8: 4rem; /* 64px */
+    --space-9: 6rem; /* 96px */
+    --space-10: 8rem; /* 128px */
+
+    --sidebar-width: 14rem; /* 224px */
+    --max-width-page: 96rem;
+
+    /* --- Motion ----------------------------------------------------------
+       Swiss motion is functional. No bounce, no overshoot, ever. */
+    --duration-instant: 50ms;
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 400ms;
+    --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --easing-out: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  /* --- Dark: cool slate ---------------------------------------------------
+     Not an inversion. The skill specifies a cool ground for Swiss, and it
+     agrees with the navy. Ink drops to off-white (#E8EAED) — pure white on
+     near-black is harsh on a night shift. Signal colors are lifted in
+     lightness to hold contrast against the dark ground. */
+  .dark,
+  [data-theme="dark"] {
+    --background: 213 24% 10%;
+    --foreground: 210 12% 91%;
+    --card: 213 22% 13%;
+    --card-foreground: 210 12% 91%;
+
+    --primary: 208 52% 62%; /* navy cannot carry contrast on dark; lift it */
+    --primary-foreground: 213 24% 10%;
+    --secondary: 213 20% 20%;
+    --secondary-foreground: 210 12% 91%;
+
+    --muted: 213 18% 17%;
+    --muted-foreground: 213 10% 66%; /* 5.1:1 on --background */
+    --accent: 213 20% 20%;
+    --accent-foreground: 210 12% 91%;
+
+    --critical: 357 78% 62%;
+    --critical-ink: 357 84% 71%;
+    --critical-foreground: 213 24% 10%;
+    --destructive: var(--critical);
+    --destructive-foreground: 213 24% 10%;
+
+    --high: 32 90% 58%;
+    --high-ink: 34 92% 66%;
+    --high-foreground: 213 24% 10%;
+
+    --medium: 208 52% 62%;
+    --medium-ink: 208 52% 70%;
+    --medium-foreground: 213 24% 10%;
+
+    --low: 213 12% 42%;
+    --low-ink: 213 10% 66%;
+    --low-foreground: 210 12% 91%;
+
+    --success: 154 42% 50%;
+    --success-ink: 154 46% 60%;
+    --success-foreground: 213 24% 10%;
+
+    --info: 208 52% 62%;
+    --info-ink: 208 52% 70%;
+
+    --border: 213 16% 22%;
+    --border-strong: 210 12% 91%;
+    --input: 213 16% 22%;
+    --ring: 208 52% 62%;
+
+    /* Dark shadows are darker and more transparent, not the same values. */
+    --shadow-focus: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+    --shadow-overlay: 0 8px 24px -8px hsl(0 0% 0% / 0.6);
+    --surface-overlay: 0 0% 0%;
+  }
+
+  /* System preference, unless the operator explicitly chose light. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.light) {
+      --background: 213 24% 10%;
+      --foreground: 210 12% 91%;
+      --card: 213 22% 13%;
+      --card-foreground: 210 12% 91%;
+      --primary: 208 52% 62%;
+      --primary-foreground: 213 24% 10%;
+      --secondary: 213 20% 20%;
+      --secondary-foreground: 210 12% 91%;
+      --muted: 213 18% 17%;
+      --muted-foreground: 213 10% 66%;
+      --accent: 213 20% 20%;
+      --accent-foreground: 210 12% 91%;
+      --critical: 357 78% 62%;
+      --critical-ink: 357 84% 71%;
+      --critical-foreground: 213 24% 10%;
+      --high: 32 90% 58%;
+      --high-ink: 34 92% 66%;
+      --high-foreground: 213 24% 10%;
+      --medium: 208 52% 62%;
+      --medium-ink: 208 52% 70%;
+      --medium-foreground: 213 24% 10%;
+      --low: 213 12% 42%;
+      --low-ink: 213 10% 66%;
+      --low-foreground: 210 12% 91%;
+      --success: 154 42% 50%;
+      --success-ink: 154 46% 60%;
+      --success-foreground: 213 24% 10%;
+      --border: 213 16% 22%;
+      --border-strong: 210 12% 91%;
+      --input: 213 16% 22%;
+      --ring: 208 52% 62%;
+      --shadow-overlay: 0 8px 24px -8px hsl(0 0% 0% / 0.6);
+      --surface-overlay: 0 0% 0%;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    /* Tabular numerals everywhere by default. In an ops console, digits that
+       shift width between renders are a legibility bug, not a nicety. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Lao script needs more leading than Latin — tone marks stack above the
+     x-height and collide at 1.5. */
+  :lang(lo) {
+    font-family: var(--font-lao);
+    line-height: var(--leading-lao);
+  }
+
+  /* Real focus rings. This console is keyboard-operable. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* The signature device of the system: Lao at full size, English as a
+     small, letterspaced, uppercase annotation beneath it. A bilingual
+     requirement turned into the Swiss subhead. */
+  .annotation {
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Eyebrow label above a large number. */
+  .label-eyebrow {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Display numeral. Tight, heavy, tabular. */
+  .numeral {
+    font-family: var(--font-sans);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Reduced motion: the pulse lives next to the word "emergency". For a
+   vestibular or photosensitive user it is a hazard, so it is replaced by a
+   static marker rather than merely slowed. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Leaflet map inherits the token surfaces instead of shipping its own grey. */
+.leaflet-container {
+  font: inherit;
+  background: hsl(var(--muted));
+}
