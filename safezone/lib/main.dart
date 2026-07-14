@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'router.dart';
 import 'theme.dart';
 import 'services/auth_service.dart';
 import 'services/passport_store.dart';
+import 'services/sos_outbox.dart';
 import 'services/sos_server.dart';
 
 Future<void> main() async {
@@ -20,6 +23,13 @@ Future<void> main() async {
   // Load whether an account already exists so the router can redirect to
   // setup vs. lock on first frame.
   await AuthService.instance.loadState();
+
+  // Deliver any SOS that was raised while the phone had no signal. Deliberately
+  // not awaited — an undelivered emergency must not hold up the first frame,
+  // and it must not depend on the user unlocking, reaching a particular screen,
+  // or even being the one holding the phone. Silent by design: this runs in
+  // decoy mode too, so a queued duress alert still gets out.
+  unawaited(SosOutbox.instance.flush());
 
   runApp(const SafeZoneApp());
 }

@@ -15,6 +15,7 @@ SafeZone app palette (passport navy, signal red, trust emerald, warm paper).
 | Area | What it does |
 |------|--------------|
 | **SOS intake** | `POST /api/sos` — the mobile app posts a passport + GPS; a Case is created and routed. |
+| **Stand-down** | `GET /api/me/case` → the caller's own open case; `POST` → "I'm safe", resolves it and writes a `resolve` timeline event. |
 | **SOS Inbox** | Live list of cases (Supabase Realtime), newest first, scoped to your role. |
 | **Case Helper** | Live map, victim/passport, trusted contacts, connection graph, timeline; actions: assign responder, route to partner, add note, resolve. |
 | **Citizens** | Searchable directory of registered travellers + their trusted contacts. |
@@ -76,6 +77,24 @@ someone else's number.
 This replaced `SOS_INGEST_TOKEN`, a single shared bearer. That token had to be
 compiled into the shipped APK, which meant it was not a secret: anyone could
 extract it and forge cases into the embassy's inbox.
+
+### Delayed cases
+
+The app queues an SOS when the phone has no signal and delivers it on reconnect,
+so `occurredAt` in the body may be hours before the request. `createdAt` still
+means *when the console learned of it* — back-dating a delayed case would file it
+below cases the officer has already worked, which is how one gets missed. The
+delay is stated on the **timeline** instead, along with the age of the GPS fix. A
+stale location read as a live one sends the rescue to where the person used to
+be.
+
+### Duress cases cannot be resolved from the device
+
+`/api/me/case` excludes `type: DURESS` in both directions: it will not show one
+and will not resolve one. The device is what the coercer is holding, so an
+"I'm safe" button reachable by them is a button that cancels the silent alarm —
+and a banner announcing an open emergency is a tell. Duress cases are stood down
+by a duty officer, here, and nowhere else.
 
 ## Security notes
 

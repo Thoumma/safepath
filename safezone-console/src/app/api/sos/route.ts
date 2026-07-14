@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     country?: string;
     routedTo?: PartnerType;
     duress?: boolean;
+    occurredAt?: string;
   };
 
   if (!b.passportNo) return NextResponse.json({ error: "passportNo required" }, { status: 400 });
@@ -69,6 +70,26 @@ export async function POST(req: Request) {
   const duress = b.duress === true;
   const severity: Severity = duress ? "CRITICAL" : (b.severity ?? "HIGH");
 
+  // The app holds an SOS in its outbox when the phone has no signal and delivers
+  // it on reconnect, so `now` is when we *heard* about the emergency, not when
+  // it happened. The gap can be hours.
+  //
+  // `createdAt` still means "when the console learned of it" — the inbox is
+  // ordered newest-first, and back-dating a case would file it below cases the
+  // officer has already worked, which is how a delayed emergency gets missed
+  // entirely. Instead the delay is stated on the timeline, where it is read.
+  // A stale GPS fix presented as a live one sends the rescue to where the person
+  // used to be, so this must never be silent.
+  const occurredAt = b.occurredAt ? new Date(b.occurredAt) : null;
+  const delayMs =
+    occurredAt && !Number.isNaN(occurredAt.getTime())
+      ? now.getTime() - occurredAt.getTime()
+      : 0;
+  const delayed = delayMs > 60_000;
+  const delayNote = delayed
+    ? ` (ສົ່ງຊ້າ ${Math.round(delayMs / 60000)} ນາທີ — ຕອນນັ້ນບໍ່ມີສັນຍານ; ຕຳແໜ່ງນີ້ແມ່ນຕອນ ${occurredAt!.toISOString()})`
+    : "";
+
   const created = await prisma.case.create({
     data: {
       refNo,
@@ -87,9 +108,10 @@ export async function POST(req: Request) {
       events: {
         create: {
           kind: duress ? "duress" : "sos",
-          message: duress
-            ? "ໃສ່ລະຫັດປອມ (ຖືກບັງຄັບ) — ຜູ້ໃຊ້ອາດເວົ້າບໍ່ໄດ້"
-            : "ກົດ SOS ຈາກ ແອັບ SafeZone",
+          message:
+            (duress
+              ? "ໃສ່ລະຫັດປອມ (ຖືກບັງຄັບ) — ຜູ້ໃຊ້ອາດເວົ້າບໍ່ໄດ້"
+              : "ກົດ SOS ຈາກ ແອັບ SafeZone") + delayNote,
           actor: "ອຸປະກອນ",
         },
       },

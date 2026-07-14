@@ -68,11 +68,18 @@ class SosServer {
   /// coercion. It is a server-side flag only: the case is raised to CRITICAL so
   /// the duty officer knows the person was forced, while the device shows the
   /// attacker absolutely nothing different. Never surface it in the UI.
+  ///
+  /// [occurredAt] is when the emergency actually happened, which is not when
+  /// this call runs if the alert sat in [SosOutbox] waiting for signal. The
+  /// console uses it to mark a delayed case as delayed — a two-hour-old GPS fix
+  /// read as a live one sends the rescue to where the person used to be.
+  /// Defaults to now, i.e. a live send.
   Future<ServerStatus> sendLocation({
     required double lat,
     required double lng,
     required String mapsUrl,
     bool duress = false,
+    DateTime? occurredAt,
     Duration timeout = const Duration(seconds: 8),
   }) async {
     if (!_ready || !ConsoleConfig.isConfigured) {
@@ -104,6 +111,8 @@ class SosServer {
               'mapsUrl': mapsUrl,
               'type': duress ? 'DURESS' : 'SOS',
               'duress': duress,
+              'occurredAt':
+                  (occurredAt ?? DateTime.now()).toUtc().toIso8601String(),
             }),
           )
           .timeout(timeout);

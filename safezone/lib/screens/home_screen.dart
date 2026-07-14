@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme.dart';
+import '../models/guardian.dart';
 import '../services/auth_service.dart';
+import '../services/case_service.dart';
 import '../services/contact_store.dart';
 import '../services/passport_store.dart';
 import '../services/profile_store.dart';
+import '../services/sos_outbox.dart';
 import '../widgets/status_tile.dart';
 import '../widgets/sos_button.dart';
 
@@ -19,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasPassport = false;
   bool _hasContact = false;
   bool _needsProfile = false;
+  GuardianCase? _openCase;
+  bool _resolving = false;
 
   @override
   void initState() {
@@ -27,16 +34,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refresh() async {
+    // Second flush trigger, after the one in main(). Home is refreshed on every
+    // return from a screen, which is the cheapest reliable proxy for "the user
+    // is active and may have walked back into coverage". Above the decoy gate on
+    // purpose — a queued alert must go out whoever is holding the phone — and
+    // not awaited, so a slow network cannot stall the dashboard.
+    unawaited(SosOutbox.instance.flush());
+
     // In decoy (duress) mode the dashboard shows nothing configured, so the
     // real passport/contact are never revealed. The profile prompt is hidden
     // too — offering to "complete your profile" would tell an attacker that a
-    // real profile exists somewhere behind another password.
+    // real profile exists somewhere behind another password. So is the open-case
+    // banner: `CaseService` refuses to load one in decoy mode, and the console
+    // will not serve a duress case to the device at all.
     if (AuthService.instance.isDecoy) {
       if (mounted) {
         setState(() {
           _hasPassport = false;
           _hasContact = false;
           _needsProfile = false;
+          _openCase = null;
         });
       }
       return;
@@ -51,6 +68,103 @@ class _HomeScreenState extends State<HomeScreen> {
         _needsProfile = !verified;
       });
     }
+
+    // Separate round trip: it hits the network, and the local dashboard must
+    // not wait on it.
+    final open = await CaseService.instance.loadOpenCase();
+    if (mounted) setState(() => _openCase = open);
+  }
+
+  /// Stands the user's own alarm down.
+  ///
+  /// Confirmed first, because it calls off a rescue. And only cleared from the
+  /// screen once the console has actually said yes — an optimistic "you're
+  /// marked safe" that never left the phone would leave the duty officer still
+  /// searching while the user believes they have told everyone otherwise.
+  Future<void> _markSafe() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ທ່ານປອດໄພແລ້ວບໍ?'),
+        content: const Text(
+          'ສະຖານທູດຈະປິດເລື່ອງນີ້ ແລະ ຢຸດການຊ່ວຍເຫຼືອ. '
+          'ກົດຢືນຢັນສະເພາະເມື່ອທ່ານປອດໄພແທ້ໆ.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ຍົກເລີກ'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ຢືນຢັນ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _resolving = true);
+    final ok = await CaseService.instance.markSafe();
+    if (!mounted) return;
+    setState(() => _resolving = false);
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? 'ແຈ້ງແລ້ວວ່າທ່ານປອດໄພ'
+            : 'ສົ່ງບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່ເມື່ອມີສັນຍານ.'),
+      ),
+    );
+    if (ok) _refresh();
+  }
+
+  /// Shown only while the user has a case the console still considers open.
+  Widget _openCaseBanner(GuardianCase c) {
+    final tokens = context.tokens;
+    final text = context.text;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tokens.critical.withAlpha(30),
+        borderRadius: SafeZoneTokens.borderRadius,
+        border:
+            Border.all(color: tokens.critical, width: SafeZoneTokens.ruleHair),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: tokens.critical),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ການແຈ້ງເຫດຂອງທ່ານຍັງເປີດຢູ່', style: text.labelLarge),
+                    const SizedBox(height: 2),
+                    Text(c.refNo, style: text.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _resolving ? null : _markSafe,
+              icon: const Icon(Icons.check),
+              label: Text(_resolving ? 'ກຳລັງສົ່ງ...' : 'ຂ້ອຍປອດໄພແລ້ວ'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Prompts for the identity the embassy needs to act on an SOS. Deliberately
@@ -179,8 +293,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const SizedBox(height: 24),
 
+                      // Above the SOS button on purpose. If an alarm of yours is
+                      // still running, standing it down is the one thing more
+                      // urgent than raising another.
+                      if (_openCase != null) _openCaseBanner(_openCase!),
+
                       SosButton(
-                        onTap: () => context.push('/sos'),
+                        onTap: () async {
+                          await context.push('/sos');
+                          _refresh();
+                        },
                       ),
 
                       const SizedBox(height: 28),

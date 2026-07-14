@@ -294,13 +294,24 @@ class _SosScreenState extends State<SosScreen> {
         return _statusRow(Icons.check_circle_outline, tokens.success,
             'ສົ່ງຫາເຊີບເວີ VFI ແລ້ວ');
       case ServerStatus.skippedOffline:
-        // Amber, not red: offline is the expected case abroad, and the SMS
-        // channel is designed to cover exactly this.
+        // Amber, not red: offline is the expected case abroad, the SMS channel
+        // is designed to cover exactly this, and the alert is now held in the
+        // outbox rather than lost. Say that it will still arrive — a traveller
+        // who thinks the embassy will never hear about this behaves very
+        // differently from one who knows it is on its way.
         return _statusRow(
-            Icons.wifi_off, tokens.highInk, 'ບໍ່ມີເນັດ — ຂ້າມເຊີບເວີ');
+            Icons.schedule_send_outlined,
+            tokens.highInk,
+            d.queued
+                ? 'ບໍ່ມີເນັດ — ຈະສົ່ງໃຫ້ອັດຕະໂນມັດເມື່ອມີສັນຍານ'
+                : 'ບໍ່ມີເນັດ — ຂ້າມເຊີບເວີ');
       case ServerStatus.failed:
-        return _statusRow(Icons.cancel_outlined, tokens.critical,
-            'ສົ່ງຫາເຊີບເວີບໍ່ສຳເລັດ');
+        return _statusRow(
+            d.queued ? Icons.schedule_send_outlined : Icons.cancel_outlined,
+            d.queued ? tokens.highInk : tokens.critical,
+            d.queued
+                ? 'ສົ່ງຫາເຊີບເວີບໍ່ສຳເລັດ — ຈະລອງໃໝ່ອັດຕະໂນມັດ'
+                : 'ສົ່ງຫາເຊີບເວີບໍ່ສຳເລັດ');
       case ServerStatus.noProfile:
         // The app is fine; the *user* has a step left. Saying "the server is
         // off" here would be a lie, and would hide the one thing they can fix.

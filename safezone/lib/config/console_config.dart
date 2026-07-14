@@ -27,4 +27,7 @@ class ConsoleConfig {
   static Uri get profileEndpoint => Uri.parse('$baseUrl/api/me/profile');
   static Uri get contactsEndpoint => Uri.parse('$baseUrl/api/me/contacts');
   static Uri get guardiansEndpoint => Uri.parse('$baseUrl/api/me/guardians');
+
+  /// GET = the user's own open case; POST = "I'm safe", resolve it.
+  static Uri get caseEndpoint => Uri.parse('$baseUrl/api/me/case');
 }
