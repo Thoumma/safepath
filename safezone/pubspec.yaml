@@ -1,0 +1,62 @@
+name: safezone
+description: SafeZone — emergency passport vault & SOS for Lao travellers abroad.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  go_router: ^14.2.0
+  image_picker: ^1.1.2
+  flutter_secure_storage: ^9.2.2
+  encrypt: ^5.0.3
+  path_provider: ^2.1.4
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+  url_launcher: ^6.3.0
+  share_plus: ^9.0.0
+  provider: ^6.1.2
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  crypto: ^3.0.3
+  supabase_flutter: ^2.16.0
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  sqflite_common_ffi: ^2.3.3
+
+flutter:
+  uses-material-design: true
+
+  # Bundled, not fetched at runtime. SafeZone is used by travellers who may be
+  # roaming, on a dead SIM, or on hostile wifi — the UI must render its own text
+  # with no network. Both families are Noto, under the OFL in assets/fonts.
+  fonts:
+    # Carries every UI string. Lao-only: 92 codepoints, no Latin, no digits.
+    - family: Noto Sans Lao
+      fonts:
+        - asset: assets/fonts/NotoSansLao-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansLao-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansLao-Bold.ttf
+          weight: 700
+
+    # The Latin/numeral companion, subset to the glyphs the app can render.
+    # Without it "SafeZone", "SOS", phone numbers, OTP digits and the maps URL
+    # have no glyphs in the primary family and fall back to whatever the OS has.
+    - family: Noto Sans
+      fonts:
+        - asset: assets/fonts/NotoSansLatin-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansLatin-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansLatin-Bold.ttf
+          weight: 700
