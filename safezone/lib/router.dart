@@ -1,0 +1,99 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'services/auth_service.dart';
+import 'screens/about_screen.dart';
+import 'screens/guardian_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/passport_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/contact_screen.dart';
+import 'screens/sos_screen.dart';
+import 'screens/setup_screen.dart';
+import 'screens/lock_screen.dart';
+import 'screens/otp_screen.dart';
+import 'widgets/app_shell.dart';
+
+final _rootKey = GlobalKey<NavigatorState>();
+
+final GoRouter appRouter = GoRouter(
+  navigatorKey: _rootKey,
+  initialLocation: '/',
+  refreshListenable: AuthService.instance,
+  redirect: (context, state) {
+    final auth = AuthService.instance;
+    final loc = state.matchedLocation;
+    const authRoutes = {'/setup', '/lock', '/otp'};
+    final goingToAuth = authRoutes.contains(loc);
+
+    // No account yet → must set up.
+    if (!auth.isSetup) {
+      return loc == '/setup' ? null : '/setup';
+    }
+
+    // Account exists but locked → only auth routes allowed (lock/otp).
+    if (!auth.isUnlocked) {
+      // Allow staying on /lock or /otp; everything else → /lock.
+      if (loc == '/lock' || loc == '/otp') return null;
+      return '/lock';
+    }
+
+    // Unlocked → keep out of auth routes.
+    if (goingToAuth) return '/';
+    return null;
+  },
+  routes: [
+    // The three bottom-bar tabs. Home first, so SOS is always one tap away.
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          AppShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(routes: [
+          GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/guardian',
+              builder: (context, state) => const GuardianScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/about', builder: (context, state) => const AboutScreen()),
+        ]),
+      ],
+    ),
+
+    // Everything below is a top-level route, so it renders *over* the shell
+    // with no bottom bar. That is deliberate:
+    //   /sos            — nobody tabs away mid-emergency-confirm.
+    //   /setup /lock /otp — the auth gate must not be escapable via a tab.
+    //   /passport /contact /profile — drill-downs from Home, with a back button.
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/sos',
+        builder: (context, state) => const SosScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/passport',
+        builder: (context, state) => const PassportScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/contact',
+        builder: (context, state) => const ContactScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/setup',
+        builder: (context, state) => const SetupScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/lock',
+        builder: (context, state) => const LockScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/otp',
+        builder: (context, state) => const OtpScreen()),
+  ],
+);
