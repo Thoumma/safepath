@@ -1,0 +1,171 @@
+// SafeZone Response Console — data model
+// One console for the Embassy, VFI and SafePath. Every SOS from the SafeZone
+// mobile app becomes a Case that is routed to the partner who should handle it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// A registered Lao traveller (owner of the SafeZone app / passport vault).
+model Citizen {
+  id           String           @id @default(uuid())
+  fullName     String           @map("full_name")
+  passportNo   String           @unique @map("passport_no")
+  dob          DateTime?        @db.Date
+  phone        String? // E.164, e.g. +85620...
+  nationality  String           @default("LA")
+  homeProvince String?          @map("home_province")
+  photoUrl     String?          @map("photo_url")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  contacts     TrustedContact[]
+  cases        Case[]
+
+  @@map("citizens")
+}
+
+/// A pre-set Trusted Contact the SOS flow notifies.
+model TrustedContact {
+  id        String  @id @default(uuid())
+  citizenId String  @map("citizen_id")
+  citizen   Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String // E.164
+  email     String?
+  relation  String?
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  @@map("trusted_contacts")
+}
+
+/// A responding organisation: the Embassy, VFI, or SafePath.
+model Partner {
+  id         String      @id @default(uuid())
+  code       PartnerType @unique
+  name       String
+  phone      String?
+  responders Responder[]
+  cases      Case[]
+  staff      StaffUser[]
+
+  @@map("partners")
+}
+
+/// A field responder that belongs to a Partner.
+model Responder {
+  id        String  @id @default(uuid())
+  partnerId String  @map("partner_id")
+  partner   Partner @relation(fields: [partnerId], references: [id])
+  name      String
+  phone     String?
+  cases     Case[]
+
+  @@map("responders")
+}
+
+/// The core entity: one SOS / assistance case.
+model Case {
+  id          String       @id @default(uuid())
+  refNo       String       @unique @map("ref_no") // e.g. SOS-2026-0713-014
+  citizenId   String       @map("citizen_id")
+  citizen     Citizen      @relation(fields: [citizenId], references: [id])
+  severity    Severity     @default(MEDIUM)
+  status      CaseStatus   @default(NEW)
+  type        String // free text, Lao, e.g. "ອຸບັດຕິເຫດ / Accident"
+  city        String?
+  country     String?
+  lat         Float?
+  lng         Float?
+  routedTo    PartnerType? @map("routed_to")
+  partnerId   String?      @map("partner_id")
+  partner     Partner?     @relation(fields: [partnerId], references: [id])
+  responderId String?      @map("responder_id")
+  responder   Responder?   @relation(fields: [responderId], references: [id])
+  createdAt   DateTime     @default(now()) @map("created_at")
+  resolvedAt  DateTime?    @map("resolved_at")
+  events      CaseEvent[]
+
+  @@index([status])
+  @@index([routedTo])
+  @@map("cases")
+}
+
+/// An entry on a case timeline (SOS received, forwarded, responder assigned...).
+model CaseEvent {
+  id        String   @id @default(uuid())
+  caseId    String   @map("case_id")
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind      String   @default("note") // sos | route | assign | call | note | resolve
+  message   String
+  actor     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("case_events")
+}
+
+/// A location ping written directly by the SafeZone mobile app (via PostgREST
+/// with the publishable key), not by this console. `sos` is the one-shot point
+/// sent when the user confirms an SOS; `live` is a Phase-2 tracking point.
+///
+/// id/created_at use database-level defaults on purpose: the app inserts over
+/// PostgREST and never supplies them, so Prisma's client-side @default(uuid())
+/// would leave the column null.
+model SosEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceId  String   @map("device_id")
+  lat       Float
+  lng       Float
+  mapsUrl   String?  @map("maps_url")
+  type      String   @default("sos") // sos | live
+  // Timestamptz, not timestamp: the user is abroad by definition, so a
+  // zone-less emergency timestamp is ambiguous exactly when it matters.
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([deviceId])
+  @@index([createdAt])
+  @@map("sos_events")
+}
+
+/// A console operator. `id` mirrors the Supabase auth.users id.
+model StaffUser {
+  id          String       @id @default(uuid())
+  email       String       @unique
+  fullName    String?      @map("full_name")
+  role        StaffRole    @default(OFFICER)
+  partnerCode PartnerType? @map("partner_code")
+  partnerId   String?      @map("partner_id")
+  partner     Partner?     @relation(fields: [partnerId], references: [id])
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@map("staff_users")
+}
+
+enum PartnerType {
+  EMBASSY
+  VFI
+  SAFEPATH
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum CaseStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum StaffRole {
+  ADMIN // sees every case
+  OFFICER // embassy duty officer, sees every case
+  PARTNER // sees only cases routed to their partner
+}
