@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Siren, Users, BarChart3, Shield, ShieldCheck, ScrollText, LogOut } from "lucide-react";
+import { LayoutDashboard, Siren, Users, BarChart3, Shield, ShieldCheck, ScrollText, Settings, LogOut } from "lucide-react";
 import { NAV } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const ICONS = { LayoutDashboard, Siren, Users, BarChart3, ShieldCheck, ScrollText } as const;
+const ICONS = { LayoutDashboard, Siren, Users, BarChart3, ShieldCheck, ScrollText, Settings } as const;
 
 /**
  * The left rule of the grid.

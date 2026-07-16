@@ -3,13 +3,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+// Types are erased at compile time, so exporting one from a "use server"
+// file is fine — a runtime value (object, const) would not be.
 export type LoginState = {
   error: string | null;
   /** Echoed back so a failed attempt does not clear the field the user typed. */
   email: string;
 };
-
-export const initialLoginState: LoginState = { error: null, email: "" };
 
 export async function signIn(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim();

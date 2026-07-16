@@ -1,10 +1,15 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/user_profile.dart';
 import '../theme.dart';
 import '../services/auth_service.dart';
+import '../services/passport_ocr.dart';
 import '../services/passport_store.dart';
+import '../services/profile_store.dart';
+import '../utils/mrz_parser.dart';
 import '../widgets/primary_button.dart';
 
 class PassportScreen extends StatefulWidget {
@@ -33,9 +38,10 @@ class _PassportScreenState extends State<PassportScreen> {
 
   Future<void> _pick(ImageSource source) async {
     setState(() => _loading = true);
+    XFile? file;
     try {
       final picker = ImagePicker();
-      final file = await picker.pickImage(source: source, imageQuality: 85);
+      file = await picker.pickImage(source: source, imageQuality: 85);
       if (file == null) return;
       final bytes = await file.readAsBytes();
       await PassportStore.instance.savePassport(bytes);
@@ -44,6 +50,14 @@ class _PassportScreenState extends State<PassportScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ບັນທຶກພາສປອດແບບ encrypted ແລ້ວ')),
         );
+      }
+
+      // Read the MRZ so the user does not retype what the passport already
+      // says. Skipped in decoy mode: autofill writes to the real profile, and
+      // nothing real may change while an attacker is holding the phone.
+      if (!AuthService.instance.isDecoy) {
+        final mrz = await PassportOcr.instance.readMrz(file.path);
+        if (mrz != null && mounted) await _offerAutofill(mrz);
       }
     } catch (e) {
       if (mounted) {
@@ -55,9 +69,118 @@ class _PassportScreenState extends State<PassportScreen> {
         );
       }
     } finally {
+      // The picker leaves a plaintext copy of the passport in the app cache.
+      // The encrypted vault copy is saved by now, so wipe the cache copy —
+      // same guarantee as the share flow's temp cleanup.
+      if (file != null) {
+        try {
+          await File(file.path).delete();
+        } catch (_) {}
+      }
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  /// Shows what the MRZ said and lets the user correct it before it becomes
+  /// their profile. Merges into an existing profile (phone + verification are
+  /// kept); creates an unverified one otherwise.
+  Future<void> _offerAutofill(MrzData mrz) async {
+    final colors = context.colors;
+    final tokens = context.tokens;
+    final text = context.text;
+
+    final name = TextEditingController(text: mrz.fullName);
+    final passport = TextEditingController(text: mrz.passportNo);
+
+    final save = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colors.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('ອ່ານຂໍ້ມູນຈາກພາສປອດໄດ້ແລ້ວ', style: text.titleLarge),
+            const SizedBox(height: 8),
+            Text(
+              mrz.checksPass
+                  ? 'ກວດຄວາມຖືກຕ້ອງແລ້ວ ບັນທຶກໃສ່ໂປຣໄຟລ໌ໄດ້ເລີຍ.'
+                  : 'ບາງຕົວອັກສອນອາດອ່ານຜິດ — ກະລຸນາກວດແກ້ກ່ອນບັນທຶກ.',
+              style: text.bodyMedium!.copyWith(
+                color: mrz.checksPass ? tokens.successInk : tokens.critical,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('ຊື່ ແລະ ນາມສະກຸນ', style: text.labelLarge),
+            const SizedBox(height: 8),
+            TextField(controller: name),
+            const SizedBox(height: 16),
+            Text('ເລກພາສປອດ', style: text.labelLarge),
+            const SizedBox(height: 8),
+            TextField(
+              controller: passport,
+              textCapitalization: TextCapitalization.characters,
+            ),
+            if (mrz.nationality.isNotEmpty || mrz.expiryDate.length == 6) ...[
+              const SizedBox(height: 12),
+              Text(
+                [
+                  if (mrz.nationality.isNotEmpty) 'ສັນຊາດ: ${mrz.nationality}',
+                  if (mrz.expiryDate.length == 6)
+                    'ໝົດອາຍຸ: ${_formatMrzDate(mrz.expiryDate)}',
+                ].join('   ·   '),
+                style: text.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 24),
+            PrimaryButton(
+              label: 'ບັນທຶກໃສ່ໂປຣໄຟລ໌',
+              icon: Icons.person_outline,
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+            const SizedBox(height: 12),
+            PrimaryButton(
+              label: 'ບໍ່ໃຊ້',
+              isSecondary: true,
+              onPressed: () => Navigator.pop(ctx, false),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (save == true) {
+      final fullName = name.text.trim();
+      final passportNo = passport.text.trim().toUpperCase();
+      if (fullName.isNotEmpty && passportNo.isNotEmpty) {
+        final existing = await ProfileStore.instance.load();
+        await ProfileStore.instance.save(
+          existing?.copyWith(fullName: fullName, passportNo: passportNo) ??
+              UserProfile(
+                  fullName: fullName, passportNo: passportNo, phone: ''),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(existing == null
+                ? 'ບັນທຶກແລ້ວ — ໄປຢືນຢັນເບີໂທໃນໜ້າ "ຂໍ້ມູນຂອງທ່ານ"'
+                : 'ບັນທຶກໃສ່ໂປຣໄຟລ໌ແລ້ວ'),
+          ));
+        }
+      }
+    }
+    name.dispose();
+    passport.dispose();
+  }
+
+  /// YYMMDD (expiry — always a 20xx date) → DD/MM/YYYY.
+  static String _formatMrzDate(String yymmdd) =>
+      '${yymmdd.substring(4)}/${yymmdd.substring(2, 4)}/20${yymmdd.substring(0, 2)}';
 
   /// Sharing the passport is a deliberate, manual act — it is no longer part of
   /// the SOS flow. The plaintext copy exists only for the duration of the share

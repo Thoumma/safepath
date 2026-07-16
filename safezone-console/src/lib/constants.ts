@@ -96,7 +96,7 @@ export type NavItem = {
   href: string;
   lo: string;
   en: string;
-  icon: "LayoutDashboard" | "Siren" | "Users" | "BarChart3" | "ShieldCheck" | "ScrollText";
+  icon: "LayoutDashboard" | "Siren" | "Users" | "BarChart3" | "ShieldCheck" | "ScrollText" | "Settings";
   /** Embassy-only surface: hidden from PARTNER staff. */
   staffOnly?: boolean;
 };
@@ -108,6 +108,9 @@ export const NAV: readonly NavItem[] = [
   { href: "/kyc", lo: "ຢືນຢັນ ຕົວຕົນ", en: "KYC", icon: "ShieldCheck", staffOnly: true },
   { href: "/logs", lo: "ບັນທຶກ ລະບົບ", en: "Activity Log", icon: "ScrollText" },
   { href: "/reports", lo: "ລາຍງານ", en: "Reports", icon: "BarChart3" },
+  // Not staffOnly: every role gets account self-service; the page itself
+  // hides the system-integration section from PARTNER accounts.
+  { href: "/settings", lo: "ຕັ້ງຄ່າ", en: "Settings", icon: "Settings" },
 ];
 
 /** Categorical chart colors. Drawn from the semantic set only — a chart may

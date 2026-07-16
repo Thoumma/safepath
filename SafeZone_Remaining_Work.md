@@ -15,6 +15,15 @@ _Last reviewed: 2026-07-16_
 - UI redesign (theme, status tile, SOS button, all screens).
 - Auth + SQLite: setup/lock/OTP, real + fake (duress) password, decoy vault +
   silent alert, new-device OTP, PBKDF2 hashing, multiple trusted contacts.
+- Passport OCR autofill (2026-07-16): picking/photographing the passport reads
+  the MRZ on-device (ML Kit + `utils/mrz_parser.dart`, ICAO check digits) and
+  offers to fill the profile — no retyping. Plaintext picker cache is wiped
+  after encryption. `test/mrz_parser_test.dart` covers the parser.
+- Ministry passport-API prep (2026-07-16): console `/settings` page stores the
+  MOFA API key/URL + enable toggle (`system_settings` table, audit-logged).
+  KYC review offers a "check with ministry" button when configured
+  (`lib/passport-verify.ts` stub contract; `match` auto-verifies, `no_match`
+  never auto-rejects); unconfigured/unreachable → manual KYC, unchanged.
 - `flutter analyze` clean; 7/7 tests pass.
 
 ---
@@ -95,7 +104,19 @@ passport is technically decryptable without authenticating.
 - **Approach:** add a `sos_events` table (timestamp, lat/lng, maps URL, who was
   notified) and a History screen.
 
-### 10. Other vision items
+### 10. Passport image upload for console KYC
+**Status:** the console's KYC review page (`/kyc/[id]`, added 2026-07-16) shows
+the passport image from `Citizen.photoUrl`, but nothing populates that column —
+the app deliberately never uploads the passport (device-only vault guarantee),
+so the panel shows "no image" for everyone.
+- **Decision needed first:** upload the vaulted passport at profile sync, or a
+  separate explicit "submit for verification" capture in the app (keeps the
+  vault guarantee intact; consent is explicit).
+- **Approach:** private Supabase Storage bucket + short-lived signed URLs for
+  staff; extend `/api/me/profile` (or a new endpoint) to accept the image and
+  set `photoUrl`. Never make the bucket public.
+
+### 11. Other vision items
 Biometric unlock, embassy integration, web/cloud encrypted backup — per the
 build plan §8, all remain roadmap.
 

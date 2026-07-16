@@ -5,7 +5,9 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn, initialLoginState } from "./actions";
+import { signIn, type LoginState } from "./actions";
+
+const initialLoginState: LoginState = { error: null, email: "" };
 
 /**
  * Its own component so `useFormStatus` can read the pending state of the

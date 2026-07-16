@@ -1,4 +1,5 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, ImageOff, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Bilingual } from "@/components/bilingual";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,9 @@ export default async function KycPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>
+                  <Bilingual lo="ຮູບ" en="Photo" />
+                </TableHead>
+                <TableHead>
                   <Bilingual lo="ຊື່" en="Name" />
                 </TableHead>
                 <TableHead>
@@ -65,7 +69,7 @@ export default async function KycPage() {
             <TableBody>
               {citizens.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canReview ? 7 : 6} className="py-8 text-center">
+                  <TableCell colSpan={canReview ? 8 : 7} className="py-8 text-center">
                     <span lang="lo" className="font-lao text-sm leading-lao text-muted-foreground">
                       ຍັງ ບໍ່ມີ ພົນລະເມືອງ ລົງທະບຽນ
                     </span>
@@ -77,9 +81,33 @@ export default async function KycPage() {
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
-                        <span lang="lo" className="font-lao font-semibold leading-lao">
+                        <Link
+                          href={`/kyc/${c.id}`}
+                          aria-label={`ກວດສອບ ${c.fullName}`}
+                          className="block w-fit"
+                        >
+                          {c.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={c.photoUrl}
+                              alt=""
+                              className="h-12 w-9 border border-border bg-muted object-cover"
+                            />
+                          ) : (
+                            <span className="grid h-12 w-9 place-items-center border border-border bg-muted">
+                              <ImageOff aria-hidden className="size-4 text-muted-foreground" />
+                            </span>
+                          )}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/kyc/${c.id}`}
+                          lang="lo"
+                          className="font-lao font-semibold leading-lao underline-offset-4 hover:underline"
+                        >
                           {c.fullName}
-                        </span>
+                        </Link>
                       </TableCell>
                       <TableCell className="font-mono text-xs tabular-nums">{c.passportNo}</TableCell>
                       <TableCell className="font-mono text-xs tabular-nums">

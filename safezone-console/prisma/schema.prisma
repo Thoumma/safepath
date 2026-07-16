@@ -153,6 +153,19 @@ model SosEvent {
   @@map("sos_events")
 }
 
+/// Console-wide configuration set by staff at runtime (not env vars, which
+/// need a redeploy). Today: the passport-verification API of the Lao Ministry
+/// of Foreign Affairs (`passport_api_*` keys). Values are server-side only —
+/// never sent to the client; the settings page shows the key masked.
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
 /// A console operator. `id` mirrors the Supabase auth.users id.
 model StaffUser {
   id          String       @id @default(uuid())
