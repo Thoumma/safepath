@@ -5,7 +5,7 @@ build plan, security log, UI redesign plan, and the auth + SQLite work. Items
 are grouped by priority. Each item lists the affected files and a concrete
 approach.
 
-_Last reviewed: 2026-06-27_
+_Last reviewed: 2026-07-16_
 
 ---
 
@@ -21,44 +21,36 @@ _Last reviewed: 2026-06-27_
 
 ## P1 — Should fix soon (quality / security gaps)
 
-### 1. Enforce the failed-attempt lockout on the lock screen
-**Status:** counter exists but does nothing.
-`AuthService._failedAttempts` is incremented and exposed via `failedAttempts`,
-but no code throttles or blocks repeated guesses, so the lock screen currently
-allows unlimited rapid password attempts.
-- **Files:** `lib/services/auth_service.dart`, `lib/screens/lock_screen.dart`.
-- **Approach:** after N failed attempts (e.g. 5), impose a cooldown (e.g. 30s,
-  growing) during which `login()` returns a new `LoginResult.lockedOut` (or the
-  lock screen disables the submit button and shows a countdown). Persist the
-  attempt count + cooldown timestamp (secure storage or a small `auth_state`
-  table) so it survives an app restart, otherwise an attacker just relaunches.
-- **Test:** unit-test that the (N+1)th attempt within the window is rejected.
+### 1. Enforce the failed-attempt lockout on the lock screen ✅ done (2026-07-16)
+From the 5th consecutive failure, `login()` returns `LoginResult.lockedOut`
+for a cooldown that doubles per further failure (30s → 1m → … capped at 30
+min). The check runs **before** any hash verification so real, fake (duress)
+and wrong passwords are throttled identically — the lockout cannot be used as
+an oracle to tell them apart. State is persisted in a new `auth_state` table
+(DB v2) so a relaunch does not reset it. The lock screen replaces the submit
+button with a live countdown. Covered by `test/auth_lockout_test.dart`,
+including a simulated restart.
 
-### 2. Remove or use `permission_handler`
-**Status:** declared dependency, never imported in Dart.
-`location_service.dart` uses `geolocator` only.
-- **Files:** `pubspec.yaml` (and `lib/services/location_service.dart` if kept).
-- **Approach:** simplest — delete `permission_handler` from `pubspec.yaml` and
-  run `flutter pub get`. (Only keep it if we add camera/notification permission
-  prompts that geolocator doesn't cover.)
+### 2. Remove or use `permission_handler` ✅ done (2026-07-16)
+Removed from `pubspec.yaml` (zero Dart imports; `geolocator` handles location
+permissions). `flutter pub get` + analyze + tests clean.
 
-### 3. Update project docs to reflect auth + SQLite + multi-contact
-**Status:** stale. `README.md` still says "account/login = mock/roadmap" and
-describes a single contact; `CLAUDE.md` predates the auth layer.
-- **Files:** `README.md`, `CLAUDE.md`.
-- **Approach:** document the new architecture — `DatabaseService` + tables,
-  `AuthService`/`AuthMode`/decoy, `DeviceIdentity`, `OtpService`, the
-  setup/lock/otp routes and router redirect gate, and the multi-contact store.
-  Note the composer-based (non-silent) delivery limitation.
+### 3. Update project docs to reflect auth + SQLite + multi-contact ✅ done (2026-07-16)
+`CLAUDE.md` rewritten: repo now described as app + console, auth layer
+(`DatabaseService` tables, `AuthService`/decoy/lockout, `DeviceIdentity`,
+`OtpService` + composer limitation), the two-channel SOS flow with outbox, the
+router auth gate, config/dart-defines, and the ffi + static-seam test
+convention. The stale "main.dart lacks startup temp cleanup" drift note is
+gone (it has the cleanup now). `safezone/README.md`: code inventory, run-lan
+usage and scope note updated — backend is no longer "mock/roadmap".
 
-### 4. Add OTP service unit tests
-**Status:** only `password_hasher` and DB schema are tested; OTP logic is not.
-`OtpService.verify` (generate → verify, expiry, single-use, wrong code) is
-untested because it reads the device key from secure storage.
-- **Files:** `test/otp_service_test.dart` (new); possibly a small seam in
-  `DeviceIdentity` to inject a fixed key in tests.
-- **Approach:** with `sqflite_common_ffi` + an injectable device key, assert: a
-  generated code verifies once, fails on reuse, and fails after expiry.
+### 4. Add OTP service unit tests ✅ done (2026-07-16)
+`test/otp_service_test.dart` (5 tests): verifies once, single-use on reuse,
+wrong code doesn't consume, 10-min expiry, regeneration invalidates the
+previous code, and per-device isolation. Enabled by new seams:
+`DeviceIdentity.testKeyOverride`, `OtpService.now`, and
+`OtpService.deliveryEnabled` (skips url_launcher composers under
+`flutter test`).
 
 ---
 
@@ -117,5 +109,5 @@ MVP's composer-based approach; resolved properly by item **#6** (backend).
 ---
 
 ## Suggested order
-1. #1 lockout throttle → 2. #3 docs → 3. #2 dead dependency → 4. #4 OTP tests
-→ 5. #5 edit/primary contact → then P3 roadmap as scope allows.
+P1 is complete (#1–#4, 2026-07-16). Next: #5 edit/primary contact → then P3
+roadmap as scope allows.

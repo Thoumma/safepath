@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Siren, Users, BarChart3, Shield, LogOut } from "lucide-react";
+import { LayoutDashboard, Siren, Users, BarChart3, Shield, ShieldCheck, ScrollText, LogOut } from "lucide-react";
 import { NAV } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const ICONS = { LayoutDashboard, Siren, Users, BarChart3 } as const;
+const ICONS = { LayoutDashboard, Siren, Users, BarChart3, ShieldCheck, ScrollText } as const;
 
 /**
  * The left rule of the grid.
@@ -21,10 +21,12 @@ export function AppSidebar({
   staffName,
   scopeLabel,
   newCount,
+  isPartner,
 }: {
   staffName: string;
   scopeLabel: string;
   newCount: number;
+  isPartner: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -35,7 +37,7 @@ export function AppSidebar({
     router.refresh();
   }
 
-  const items = NAV.map((item) => {
+  const items = NAV.filter((item) => !(item.staffOnly && isPartner)).map((item) => {
     const Icon = ICONS[item.icon];
     const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
     return { ...item, Icon, active };
@@ -118,7 +120,10 @@ export function AppSidebar({
 
       {/* Mobile: bottom tab bar. 44px minimum touch targets. */}
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card md:hidden">
-        <ul className="grid grid-cols-4">
+        <ul
+          className="grid"
+          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+        >
           {items.map(({ href, lo, Icon, active }) => (
             <li key={href}>
               <Link

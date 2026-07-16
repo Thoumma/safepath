@@ -16,8 +16,12 @@ class DeviceIdentity {
   final _storage = const FlutterSecureStorage();
   static final Random _rng = Random.secure();
 
+  /// Test seam: fixed device key so tests never touch secure storage.
+  static String? testKeyOverride;
+
   /// Returns this device's key, generating and persisting one if absent.
   Future<String> currentKey() async {
+    if (testKeyOverride != null) return testKeyOverride!;
     var key = await _storage.read(key: _keyName);
     if (key == null) {
       key = _randomHex(16);

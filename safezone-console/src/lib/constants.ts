@@ -72,12 +72,43 @@ export const PARTNER = {
   SAFEPATH: { lo: "SafePath", en: "SafePath" },
 } as const;
 
-export const NAV = [
+/** KYC verdicts follow the same loudness rule: the state demanding staff
+ *  attention (PENDING) is the loud one; a settled VERIFIED is quiet. */
+export const KYC = {
+  PENDING: {
+    lo: "ລໍຖ້າ ກວດສອບ",
+    en: "Pending",
+    badge: "bg-high text-high-foreground",
+  },
+  VERIFIED: {
+    lo: "ຢືນຢັນ ແລ້ວ",
+    en: "Verified",
+    badge: "border border-success text-success-ink bg-transparent",
+  },
+  REJECTED: {
+    lo: "ປະຕິເສດ",
+    en: "Rejected",
+    badge: "bg-critical text-critical-foreground",
+  },
+} as const;
+
+export type NavItem = {
+  href: string;
+  lo: string;
+  en: string;
+  icon: "LayoutDashboard" | "Siren" | "Users" | "BarChart3" | "ShieldCheck" | "ScrollText";
+  /** Embassy-only surface: hidden from PARTNER staff. */
+  staffOnly?: boolean;
+};
+
+export const NAV: readonly NavItem[] = [
   { href: "/dashboard", lo: "ພາບລວມ", en: "Dashboard", icon: "LayoutDashboard" },
   { href: "/inbox", lo: "ສາຍ SOS", en: "SOS Inbox", icon: "Siren" },
   { href: "/citizens", lo: "ພົນລະເມືອງ", en: "Citizens", icon: "Users" },
+  { href: "/kyc", lo: "ຢືນຢັນ ຕົວຕົນ", en: "KYC", icon: "ShieldCheck", staffOnly: true },
+  { href: "/logs", lo: "ບັນທຶກ ລະບົບ", en: "Activity Log", icon: "ScrollText" },
   { href: "/reports", lo: "ລາຍງານ", en: "Reports", icon: "BarChart3" },
-] as const;
+];
 
 /** Categorical chart colors. Drawn from the semantic set only — a chart may
  *  not introduce a hue the rest of the console does not already mean. */
@@ -98,3 +129,4 @@ export const CHART_SERIES = [CHART.critical, CHART.medium, CHART.high, CHART.suc
 export type SeverityKey = keyof typeof SEVERITY;
 export type StatusKey = keyof typeof STATUS;
 export type PartnerKey = keyof typeof PARTNER;
+export type KycKey = keyof typeof KYC;

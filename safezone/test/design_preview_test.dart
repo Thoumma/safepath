@@ -16,7 +16,9 @@ import 'package:safezone/screens/passport_screen.dart';
 import 'package:safezone/screens/profile_screen.dart';
 import 'package:safezone/screens/setup_screen.dart';
 import 'package:safezone/screens/sos_screen.dart';
+import 'package:safezone/services/database_service.dart';
 import 'package:safezone/theme.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Reproduces the chrome `AppShell` puts around a tab, without needing a live
 /// `StatefulNavigationShell` (which only go_router can construct).
@@ -94,6 +96,10 @@ void main() {
   setUpAll(() async {
     await _loadFonts();
     _stubPlugins();
+    // LockScreen reads the login-throttle state from SQLite in initState.
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+    DatabaseService.testPathOverride = inMemoryDatabasePath;
   });
 
   final screens = <String, Widget>{

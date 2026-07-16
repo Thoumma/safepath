@@ -1,10 +1,16 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma, StaffUser } from "@prisma/client";
 
-/** Resolve the logged-in staff member, or redirect to /login. */
-export async function requireStaff(): Promise<StaffUser> {
+/** Resolve the logged-in staff member, or redirect to /login.
+ *
+ * Wrapped in React `cache()` so that when the layout and a page both call it
+ * in the same request, the Supabase `getUser()` round trip and the staff-row
+ * query run once, not once per caller.
+ */
+export const requireStaff = cache(async (): Promise<StaffUser> => {
   const supabase = createClient();
   const {
     data: { user },
@@ -21,7 +27,7 @@ export async function requireStaff(): Promise<StaffUser> {
     });
   }
   return staff;
-}
+});
 
 /**
  * Build the Prisma `where` scope for a staff member. PARTNER roles only see

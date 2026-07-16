@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
@@ -17,14 +18,47 @@ class _LockScreenState extends State<LockScreen> {
   final _password = TextEditingController();
   bool _busy = false;
   String? _error;
+  Duration _lockout = Duration.zero;
+  Timer? _lockoutTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // A lockout set before an app restart must still be enforced on screen.
+    AuthService.instance.lockoutRemaining().then((left) {
+      if (mounted && left > Duration.zero) _startLockoutCountdown(left);
+    });
+  }
 
   @override
   void dispose() {
+    _lockoutTimer?.cancel();
     _password.dispose();
     super.dispose();
   }
 
+  void _startLockoutCountdown(Duration initial) {
+    _lockoutTimer?.cancel();
+    setState(() {
+      _lockout = initial;
+      _error = null;
+    });
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final left = await AuthService.instance.lockoutRemaining();
+      if (!mounted) return;
+      setState(() => _lockout = left);
+      if (left == Duration.zero) _lockoutTimer?.cancel();
+    });
+  }
+
+  String _formatLockout(Duration d) {
+    final m = d.inMinutes;
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
   Future<void> _submit() async {
+    if (_lockout > Duration.zero) return;
     if (_password.text.isEmpty) {
       setState(() => _error = 'ກະລຸນາໃສ່ລະຫັດຜ່ານ');
       return;
@@ -55,6 +89,13 @@ class _LockScreenState extends State<LockScreen> {
         break;
       case LoginResult.wrongPassword:
         setState(() => _error = 'ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ');
+        // The failure may have just tripped the throttle.
+        final left = await AuthService.instance.lockoutRemaining();
+        if (mounted && left > Duration.zero) _startLockoutCountdown(left);
+        break;
+      case LoginResult.lockedOut:
+        final left = await AuthService.instance.lockoutRemaining();
+        if (mounted) _startLockoutCountdown(left);
         break;
     }
   }
@@ -110,6 +151,28 @@ class _LockScreenState extends State<LockScreen> {
               if (_busy)
                 Center(
                   child: CircularProgressIndicator(color: colors.primary),
+                )
+              else if (_lockout > Duration.zero)
+                Column(
+                  children: [
+                    Icon(Icons.timer_outlined,
+                        color: context.tokens.criticalInk, size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      'ໃສ່ລະຫັດຜິດຫຼາຍເກີນໄປ',
+                      textAlign: TextAlign.center,
+                      style: text.bodyMedium!.copyWith(
+                        color: context.tokens.criticalInk,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ລອງໃໝ່ໄດ້ໃນ ${_formatLockout(_lockout)}',
+                      textAlign: TextAlign.center,
+                      style: text.bodyMedium,
+                    ),
+                  ],
                 )
               else
                 PrimaryButton(

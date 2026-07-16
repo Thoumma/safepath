@@ -17,6 +17,13 @@ class OtpService {
   static const Duration _ttl = Duration(minutes: 10);
   static final Random _rng = Random.secure();
 
+  /// Test seam for the clock.
+  static DateTime Function() now = DateTime.now;
+
+  /// Test seam: disable the SMS/email composers (url_launcher needs platform
+  /// channels that don't exist under `flutter test`).
+  static bool deliveryEnabled = true;
+
   /// Generates a 6-digit code, stores its hash, and opens SMS + email
   /// composers addressed to all [contacts]. Returns the plaintext code (so the
   /// owner/contact relays it) — never persisted in plaintext.
@@ -24,7 +31,7 @@ class OtpService {
     final code = (_rng.nextInt(900000) + 100000).toString(); // 100000–999999
     final hashed = PasswordHasher.hash(code);
     final deviceKey = await DeviceIdentity.instance.currentKey();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final nowMs = now().millisecondsSinceEpoch;
 
     final db = await DatabaseService.instance.db;
     // Invalidate any earlier pending codes for this device.
@@ -38,12 +45,12 @@ class OtpService {
       'code_hash': hashed.hash,
       'salt': hashed.salt,
       'device_key': deviceKey,
-      'expires_at': now + _ttl.inMilliseconds,
+      'expires_at': nowMs + _ttl.inMilliseconds,
       'consumed': 0,
-      'created_at': now,
+      'created_at': nowMs,
     });
 
-    await _deliver(contacts, code);
+    if (deliveryEnabled) await _deliver(contacts, code);
     return code;
   }
 
@@ -51,13 +58,13 @@ class OtpService {
   /// marks it consumed on success.
   Future<bool> verify(String code) async {
     final deviceKey = await DeviceIdentity.instance.currentKey();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final nowMs = now().millisecondsSinceEpoch;
     final db = await DatabaseService.instance.db;
 
     final rows = await db.query(
       'otp_codes',
       where: 'device_key = ? AND consumed = 0 AND expires_at > ?',
-      whereArgs: [deviceKey, now],
+      whereArgs: [deviceKey, nowMs],
       orderBy: 'created_at DESC',
       limit: 1,
     );

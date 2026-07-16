@@ -14,19 +14,41 @@ datasource db {
 
 /// A registered Lao traveller (owner of the SafeZone app / passport vault).
 model Citizen {
-  id           String           @id @default(uuid())
-  fullName     String           @map("full_name")
-  passportNo   String           @unique @map("passport_no")
-  dob          DateTime?        @db.Date
-  phone        String? // E.164, e.g. +85620...
-  nationality  String           @default("LA")
-  homeProvince String?          @map("home_province")
-  photoUrl     String?          @map("photo_url")
-  createdAt    DateTime         @default(now()) @map("created_at")
-  contacts     TrustedContact[]
-  cases        Case[]
+  id            String           @id @default(uuid())
+  fullName      String           @map("full_name")
+  passportNo    String           @unique @map("passport_no")
+  dob           DateTime?        @db.Date
+  phone         String? // E.164, e.g. +85620...
+  nationality   String           @default("LA")
+  homeProvince  String?          @map("home_province")
+  photoUrl      String?          @map("photo_url")
+  // KYC: has a staff member confirmed this registration matches a real
+  // passport? App self-registration lands as PENDING; only the console
+  // moves it. The decision is also written to AuditLog.
+  kycStatus     KycStatus        @default(PENDING) @map("kyc_status")
+  kycReviewedBy String?          @map("kyc_reviewed_by")
+  kycReviewedAt DateTime?        @map("kyc_reviewed_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  contacts      TrustedContact[]
+  cases         Case[]
 
+  @@index([kycStatus])
   @@map("citizens")
+}
+
+/// Console audit trail for actions that are not tied to a single case (KYC
+/// decisions, staff-level actions). Case-level history stays in CaseEvent;
+/// the Activity Log page merges both.
+model AuditLog {
+  id        String   @id @default(uuid())
+  actor     String
+  action    String // kyc_verify | kyc_reject
+  target    String?
+  detail    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 /// A pre-set Trusted Contact the SOS flow notifies.
@@ -162,6 +184,12 @@ enum CaseStatus {
   NEW
   IN_PROGRESS
   RESOLVED
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
 }
 
 enum StaffRole {

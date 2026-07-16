@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../models/app_user.dart';
 import '../utils/password_hasher.dart';
 import 'contact_store.dart';
@@ -18,6 +20,7 @@ enum LoginResult {
   unlockedFakeDecoy,
   needsOtp,
   noContact,
+  lockedOut,
 }
 
 /// Central authentication state + orchestration. Singleton `ChangeNotifier`
@@ -37,13 +40,23 @@ class AuthService extends ChangeNotifier {
   AuthMode _mode = AuthMode.real;
   AuthMode _pendingMode = AuthMode.real;
 
-  int _failedAttempts = 0;
+  /// Brute-force throttle: from the [_maxFreeAttempts]th consecutive failure
+  /// onward, every attempt is blocked for a cooldown that doubles per further
+  /// failure. State lives in the `auth_state` table so relaunching the app
+  /// does not reset it.
+  static const _maxFreeAttempts = 5;
+  static const _baseCooldown = Duration(seconds: 30);
+  static const _maxCooldown = Duration(minutes: 30);
+  static const _kAttempts = 'failed_attempts';
+  static const _kLockedUntil = 'locked_until';
+
+  /// Test seam for the clock.
+  static DateTime Function() now = DateTime.now;
 
   bool get isSetup => _isSetup;
   bool get isUnlocked => _isUnlocked;
   AuthMode get mode => _mode;
   bool get isDecoy => _isUnlocked && _mode == AuthMode.fake;
-  int get failedAttempts => _failedAttempts;
 
   /// Loads whether an account already exists. Call once at startup.
   Future<void> loadState() async {
@@ -85,20 +98,25 @@ class AuthService extends ChangeNotifier {
 
   /// Attempts to unlock with [password].
   Future<LoginResult> login(String password) async {
+    // Throttle before any verification, so the lockout treats real, fake and
+    // wrong passwords identically — it must not become an oracle that lets an
+    // attacker tell the duress password apart from a wrong guess.
+    if (await lockoutRemaining() > Duration.zero) return LoginResult.lockedOut;
+
     final user = await _loadUser();
     if (user == null) return LoginResult.wrongPassword;
 
     // Fake password: always straight to decoy + silent alert, even on a new
     // device, so the duress illusion is never broken by an OTP prompt.
     if (PasswordHasher.verify(password, user.fakeSalt, user.fakeHash)) {
-      _failedAttempts = 0;
+      await _clearThrottle();
       _unlock(AuthMode.fake);
       unawaited(_fireSilentAlert());
       return LoginResult.unlockedFakeDecoy;
     }
 
     if (PasswordHasher.verify(password, user.realSalt, user.realHash)) {
-      _failedAttempts = 0;
+      await _clearThrottle();
       final known = await DeviceIdentity.instance.isKnown();
       if (known) {
         _unlock(AuthMode.real);
@@ -112,8 +130,50 @@ class AuthService extends ChangeNotifier {
       return LoginResult.needsOtp;
     }
 
-    _failedAttempts++;
+    await _recordFailure();
     return LoginResult.wrongPassword;
+  }
+
+  /// How long until password attempts are accepted again; zero when the
+  /// screen is not locked out.
+  Future<Duration> lockoutRemaining() async {
+    final raw = await _stateGet(_kLockedUntil);
+    if (raw == null) return Duration.zero;
+    final until = DateTime.fromMillisecondsSinceEpoch(int.parse(raw));
+    final left = until.difference(now());
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  Future<void> _recordFailure() async {
+    final attempts = int.parse(await _stateGet(_kAttempts) ?? '0') + 1;
+    await _statePut(_kAttempts, '$attempts');
+    if (attempts < _maxFreeAttempts) return;
+    // 5th failure → 30s, then 1m, 2m, … capped. The shift is clamped so the
+    // multiplier cannot overflow no matter how many failures accumulate.
+    final shift = min(attempts - _maxFreeAttempts, 8);
+    var cooldown = _baseCooldown * (1 << shift);
+    if (cooldown > _maxCooldown) cooldown = _maxCooldown;
+    await _statePut(
+        _kLockedUntil, '${now().add(cooldown).millisecondsSinceEpoch}');
+  }
+
+  Future<void> _clearThrottle() async {
+    final db = await DatabaseService.instance.db;
+    await db.delete('auth_state',
+        where: 'key IN (?, ?)', whereArgs: [_kAttempts, _kLockedUntil]);
+  }
+
+  Future<String?> _stateGet(String key) async {
+    final db = await DatabaseService.instance.db;
+    final rows = await db.query('auth_state',
+        where: 'key = ?', whereArgs: [key], limit: 1);
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
+  Future<void> _statePut(String key, String value) async {
+    final db = await DatabaseService.instance.db;
+    await db.insert('auth_state', {'key': key, 'value': value},
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   /// Sends (or resends) the OTP to all trusted contacts. Returns false if no

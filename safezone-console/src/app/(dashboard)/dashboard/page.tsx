@@ -2,22 +2,21 @@ import { PageHeader } from "@/components/page-header";
 import { StatBlock } from "@/components/stat-card";
 import { CaseRow } from "@/components/case-row";
 import { Bilingual } from "@/components/bilingual";
-import { requireStaff, caseScope } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireStaff } from "@/lib/auth";
 import { listCases } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const staff = await requireStaff();
-  const scope = caseScope(staff);
 
-  const [active, open, resolved, cases] = await Promise.all([
-    prisma.case.count({ where: { ...scope, status: "NEW" } }),
-    prisma.case.count({ where: { ...scope, status: { in: ["NEW", "IN_PROGRESS"] } } }),
-    prisma.case.count({ where: { ...scope, status: "RESOLVED" } }),
-    listCases(staff),
-  ]);
+  // One round trip to the (remote) database. The stat counts are derived from
+  // the same scoped list the page already renders — three extra `count`
+  // queries were three extra round trips that told us nothing new.
+  const cases = await listCases(staff);
+  const active = cases.filter((c) => c.status === "NEW").length;
+  const open = cases.filter((c) => c.status === "NEW" || c.status === "IN_PROGRESS").length;
+  const resolved = cases.filter((c) => c.status === "RESOLVED").length;
 
   // Triage order is the design. Unresolved first, most severe first, then oldest
   // first — a critical case that has been waiting 40 minutes outranks one that

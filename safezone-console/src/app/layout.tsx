@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Lao, Archivo, JetBrains_Mono } from "next/font/google";
+import { FirebaseAnalytics } from "@/components/firebase-analytics";
 import "./globals.css";
 
 // Lao script carries the meaning.
@@ -47,7 +48,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <FirebaseAnalytics />
+        {children}
+      </body>
     </html>
   );
 }

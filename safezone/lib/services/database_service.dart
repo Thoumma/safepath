@@ -9,7 +9,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const _dbName = 'safezone.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   /// Test hook: when set, the DB opens at this path (e.g.
   /// `inMemoryDatabasePath`) instead of the app's databases directory.
@@ -28,6 +28,7 @@ class DatabaseService {
       options: OpenDatabaseOptions(
         version: _dbVersion,
         onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
       ),
     );
   }
@@ -62,6 +63,23 @@ class DatabaseService {
         expires_at INTEGER NOT NULL,
         consumed INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL
+      )
+    ''');
+
+    await _createAuthState(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) await _createAuthState(db);
+  }
+
+  /// v2: key-value state for the login throttle (failed-attempt count and
+  /// lockout deadline), persisted so a relaunch does not reset the cooldown.
+  Future<void> _createAuthState(Database db) async {
+    await db.execute('''
+      CREATE TABLE auth_state (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       )
     ''');
   }

@@ -16,7 +16,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar staffName={staff.fullName ?? staff.email} scopeLabel={scopeLabel} newCount={newCount} />
+      <AppSidebar
+        staffName={staff.fullName ?? staff.email}
+        scopeLabel={scopeLabel}
+        newCount={newCount}
+        isPartner={staff.role === "PARTNER"}
+      />
       {/* pb-14 clears the mobile bottom tab bar; it collapses at md. */}
       <main className="flex-1 overflow-y-auto pb-14 md:pb-0">{children}</main>
     </div>
