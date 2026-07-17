@@ -332,3 +332,82 @@
   font: inherit;
   background: hsl(var(--muted));
 }
+
+/* Threat-map dots. Leaflet writes stroke/fill as SVG presentation attributes,
+   where hsl(var(--x)) does not resolve — so dots carry a class and these CSS
+   rules (which by spec beat presentation attributes) supply the token colors.
+   Theme switching is therefore free: no re-render, exactly like recharts. */
+.map-dot {
+  fill-opacity: 0.35;
+  stroke-width: 1.5;
+  transition: fill-opacity var(--duration-fast) var(--easing-default);
+}
+.map-dot:hover {
+  fill-opacity: 0.55;
+}
+.map-dot--critical { stroke: hsl(var(--critical)); fill: hsl(var(--critical)); }
+.map-dot--high     { stroke: hsl(var(--high));     fill: hsl(var(--high)); }
+.map-dot--medium   { stroke: hsl(var(--medium));   fill: hsl(var(--medium)); }
+.map-dot--low      { stroke: hsl(var(--low));      fill: hsl(var(--low)); }
+
+/* Reference layer: UNODC baseline country shading. Fill opacity is set
+   inline per country (share-scaled); only the hue comes from here so it
+   stays the same red the console already means by "trafficking". */
+.map-country {
+  stroke: hsl(var(--critical));
+  fill: hsl(var(--critical));
+}
+.map-country--nodata {
+  stroke: hsl(var(--muted-foreground));
+  fill: none;
+  stroke-dasharray: 3 3;
+}
+
+/* Flat tooltip to match the popup. */
+.leaflet-tooltip {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 2px;
+  box-shadow: none;
+  font-size: 12px;
+}
+.leaflet-tooltip .text-muted {
+  color: hsl(var(--muted-foreground));
+}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+  display: none;
+}
+
+/* Flat popup: Leaflet's rounded shadowed bubble is the generic-map tell. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 2px;
+  box-shadow: none;
+}
+.leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Grayscale tiles: color on the map is reserved for the semantic dots.
+   Dark theme inverts the tiles so the ground stays quiet at night. */
+.leaflet-tile {
+  filter: grayscale(1) contrast(1.02);
+}
+.dark .leaflet-tile,
+[data-theme="dark"] .leaflet-tile {
+  filter: grayscale(1) invert(1) brightness(0.85) contrast(0.95);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not(.light) .leaflet-tile {
+    filter: grayscale(1) invert(1) brightness(0.85) contrast(0.95);
+  }
+}

@@ -26,6 +26,10 @@ export default function Loading() {
           <div className="h-14 animate-pulse rounded-sm border border-border bg-muted" />
           <div className="h-14 animate-pulse rounded-sm border border-border bg-muted" />
         </section>
+
+        <section>
+          <div className="h-96 animate-pulse rounded-sm border border-border bg-muted" />
+        </section>
       </div>
     </div>
   );

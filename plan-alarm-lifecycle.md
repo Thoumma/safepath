@@ -129,3 +129,10 @@ traveller.
 - Phase-2 live tracking (`plan.md` §6).
 - The open P1 items in `SafeZone_Remaining_Work.md`. The **lockout throttle** in particular is still
   open and still matters most.
+
+Where it's filed: src/lib/threat-reference.ts — a typed dataset where every entry carries the national source organization (e.g. Thailand's E-AHT system, Cambodia's NCCT), the publication, the exact source URL, and the access date (2026-07-16). The file's header documents the update cadence (UNODC publishes every ~2 years) and a hard rule: only aggregates are ever stored, never victim-level rows.
+How it's flagged: a new panel at the bottom of Reports — "ຂໍ້ມູນ ການຄ້າມະນຸດ ສາກົນ / International trafficking data" — with a muted ອ້າງອີງ / Reference badge so it can never be mistaken for SafeZone case data. Each row shows the latest detected-victims figure, its share percentage among the listed countries, the full year series, and a link to the UNODC source (hover shows the originating national agency and access date). Footnotes state the two things that must not be silent: Laos itself has no GLOTIP profile (it didn't report to UNODC — absence of data, not absence of trafficking), and the share calculation mixes each country's latest year.
+
+What I couldn't fetch automatically: CTDC's victim-level global dataset — their site returns 403 to any non-browser client. If you want it, download the k-anonymized CSV manually from ctdatacollaborative.org (https://www.ctdatacollaborative.org/page/global-dataset), drop it anywhere in the repo, and I'll write the aggregation import (aggregates only). The downloaded UNODC PDF itself stayed in my scratchpad — I didn't commit 5.6 MB to the repo since the URL is recorded in the source metadata.
+
+Sources: UNODC GLOTIP 2024 — East Asia & Pacific country data (https://www.unodc.org/documents/data-and-analysis/glotip/2024/East_Asia_the_Pacific_GLOTIP2024.pdf), UNODC GLOTIP hub (https://www.unodc.org/unodc/en/human-trafficking/global-report-on-trafficking-in-persons.html), CTDC Global Dataset (https://www.ctdatacollaborative.org/page/global-dataset)

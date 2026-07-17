@@ -2,18 +2,21 @@ import { PageHeader } from "@/components/page-header";
 import { StatBlock } from "@/components/stat-card";
 import { CaseRow } from "@/components/case-row";
 import { Bilingual } from "@/components/bilingual";
+import { ThreatMapSection } from "@/components/threat-map-section";
 import { requireStaff } from "@/lib/auth";
-import { listCases } from "@/lib/queries";
+import { listCases, listCaseMapRows } from "@/lib/queries";
+import { aggregateCityPoints } from "@/lib/map-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const staff = await requireStaff();
 
-  // One round trip to the (remote) database. The stat counts are derived from
-  // the same scoped list the page already renders — three extra `count`
-  // queries were three extra round trips that told us nothing new.
-  const cases = await listCases(staff);
+  // Two parallel round trips to the (remote) database. The stat counts are
+  // derived from the same scoped list the page already renders — extra
+  // `count` queries were extra round trips that told us nothing new.
+  const [cases, mapRows] = await Promise.all([listCases(staff), listCaseMapRows(staff)]);
+  const mapPoints = aggregateCityPoints(mapRows);
   const active = cases.filter((c) => c.status === "NEW").length;
   const open = cases.filter((c) => c.status === "NEW" || c.status === "IN_PROGRESS").length;
   const resolved = cases.filter((c) => c.status === "RESOLVED").length;
@@ -79,6 +82,13 @@ export default async function DashboardPage() {
               ))}
             </ul>
           )}
+        </section>
+
+        {/* Below the triage queue on purpose: the queue is the action, the
+            map is situational awareness. It must never push a waiting
+            critical case below the fold. */}
+        <section>
+          <ThreatMapSection points={mapPoints} />
         </section>
       </div>
     </>

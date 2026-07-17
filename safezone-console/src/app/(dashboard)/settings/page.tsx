@@ -66,8 +66,7 @@ export default async function SettingsPage({
         en="Settings"
         sub="ບັນຊີ ຂອງ ທ່ານ ແລະ ການເຊື່ອມຕໍ່ ກັບ ລະບົບ ພາຍນອກ"
       />
-
-      <div className="max-w-2xl space-y-5 p-6">
+      <div className="max-w-5xl space-y-5 p-8">
         {/* ── My account — every role ─────────────────────────────────── */}
         <Card>
           <PanelTitle lo="ບັນຊີ ຂອງ ຂ້ອຍ" en="My account" />

@@ -24,3 +24,21 @@ export async function listCases(staff: StaffUser): Promise<CaseListItem[]> {
     createdAt: c.createdAt.toISOString(),
   }));
 }
+
+export type CaseMapRow = {
+  city: string | null;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+  type: string;
+};
+
+/** Geo rows for the threat map — lean on purpose (no CaseListItem bloat,
+ *  which feeds the realtime inbox and /api/cases). Same role scope as
+ *  everything else: a PARTNER maps only their routed cases. */
+export async function listCaseMapRows(staff: StaffUser): Promise<CaseMapRow[]> {
+  return prisma.case.findMany({
+    where: { ...caseScope(staff), lat: { not: null }, lng: { not: null } },
+    select: { city: true, country: true, lat: true, lng: true, type: true },
+  });
+}
