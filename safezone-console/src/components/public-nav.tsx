@@ -68,7 +68,7 @@ export function PublicNav() {
           <Link
             href="/admin"
             lang="en"
-            className="ml-1 rounded-sm px-2 py-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors duration-fast hover:text-foreground"
+            className="ml-1 border-2 border-[var(--primary)] px-3 py-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors duration-fast hover:text-foreground"
           >
             Staff
           </Link>
@@ -121,7 +121,7 @@ export function PublicNav() {
                 href="/admin"
                 lang="en"
                 onClick={() => setOpen(false)}
-                className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground"
+                className="text-2xs font-semibold border border-[var(--primary)] uppercase tracking-wider text-muted-foreground"
               >
                 Staff sign in
               </Link>
