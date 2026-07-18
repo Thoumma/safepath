@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/console_config.dart';
@@ -15,12 +17,22 @@ import 'phone_identity.dart';
 /// from when they first pressed SOS.
 ///
 /// This is the interval ("cron"-style) sender that sits on top of the one-shot
-/// [SosService.triggerSos]. It runs while the app is open **and unlocked**:
-/// [AuthService.lock] stops it, so a locked phone — and therefore any following
-/// fake-password unlock — streams nothing. True background tracking (screen off
-/// / app killed) needs a native foreground service and
-/// `ACCESS_BACKGROUND_LOCATION`, and would raise a decoy-mode tell (a persistent
-/// tracking notification) — deliberately out of scope here.
+/// [SosService.triggerSos]. A fixed 20s [Timer] is the poster; on top of it a
+/// best-effort background stream ([Geolocator.getPositionStream] with an Android
+/// foreground service / iOS background-location mode) keeps the process alive so
+/// tracking continues with the screen off or the app backgrounded, and refreshes
+/// a cached fix the timer posts. If the OS or the user refuses the background
+/// grant, the stream simply never starts and the service degrades to exactly its
+/// old foreground-only behaviour — no regression.
+///
+/// Duress-safe by construction. [start] is decoy-gated, so neither the stream
+/// nor its (decoy-tell) foreground notification can ever *originate* under the
+/// fake password. [stop] cancels the stream — tearing down the notification —
+/// and [AuthService.lock] calls [stop], so the single lock choke point guarantees
+/// the notification is gone before any fake-password unlock. [_tick] re-checks
+/// the decoy/locked gate as defense in depth. geolocator has no headless isolate:
+/// if the process is killed the foreground service dies with it, so there is no
+/// path where fixes are collected or posted without this Dart gate running.
 ///
 /// A singleton like every other service, so any screen can `start()`/`stop()`
 /// it without threading an instance around.
@@ -41,9 +53,25 @@ class LiveTrackingService {
   /// the next tick, and a missed ping just waits for the following interval.
   static const Duration _postTimeout = Duration(seconds: 8);
 
+  /// How recent a background-stream fix must be for [_tick] to post it instead
+  /// of taking a one-shot fix. Roughly 2× [interval] so a stream that quietly
+  /// dies can't keep re-posting one frozen point — a stale cache falls back to a
+  /// live one-shot read.
+  static const Duration _freshWindow = Duration(seconds: 45);
+
   Timer? _timer;
   DateTime? _startedAt;
   bool _posting = false;
+
+  /// The background-location subscription that keeps the process alive. Null when
+  /// running foreground-only (background denied, unsupported, or not yet started).
+  StreamSubscription<Position>? _sub;
+  Position? _lastFix;
+  DateTime? _lastFixAt;
+
+  /// Set once the user declines the Always/background grant so the escalation
+  /// isn't re-fired on every idempotent [start] (Home refreshes call it often).
+  bool _backgroundDenied = false;
 
   bool get isTracking => _timer != null;
 
@@ -60,15 +88,101 @@ class LiveTrackingService {
     if (_timer != null) return;
 
     _startedAt = DateTime.now();
+    // Best-effort: keep the process alive in the background. Never throws into
+    // start() — on any failure the timer below runs foreground-only, as before.
+    unawaited(_startBackgroundStream());
     // Fire once immediately so the trail starts without waiting a full interval.
     unawaited(_tick());
     _timer = Timer.periodic(interval, (_) => _tick());
   }
 
   void stop() {
+    // Cancelling the subscription tears down the Android foreground service and
+    // its notification. This is the duress-critical line: lock() → stop() must
+    // leave nothing visible or streaming before any fake-password unlock.
+    _sub?.cancel();
+    _sub = null;
+    _lastFix = null;
+    _lastFixAt = null;
     _timer?.cancel();
     _timer = null;
     _startedAt = null;
+  }
+
+  /// Escalates to background ("Always") location and subscribes to a stream that
+  /// keeps the process alive. Entirely best-effort: any failure — permission
+  /// declined, platform refusal, unsupported OS — leaves [_sub] null and the
+  /// foreground-only [Timer] carries on exactly as before.
+  Future<void> _startBackgroundStream() async {
+    if (_backgroundDenied || _sub != null) return;
+    try {
+      // whileInUse is already obtained by the one-shot fix on the first ping.
+      // Escalate to Always only here — after the decoy gate in start() — so a
+      // background-location dialog never lands on the duress path or at setup.
+      var perm = await Geolocator.checkPermission();
+      if (perm != LocationPermission.always) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm != LocationPermission.always) {
+        // Only whileInUse (or nothing). Run foreground-only and don't nag again
+        // this session; a new grant needs an app restart, which is acceptable.
+        _backgroundDenied = true;
+        return;
+      }
+
+      _sub = Geolocator.getPositionStream(locationSettings: _backgroundSettings())
+          .listen(
+        (pos) {
+          _lastFix = pos;
+          _lastFixAt = DateTime.now();
+        },
+        // Location turned off mid-track, etc. Keep the timer alive; _tick falls
+        // back to a one-shot fix. Don't tear down — a transient error may recover.
+        onError: (_) {},
+        cancelOnError: false,
+      );
+    } catch (_) {
+      // Bad settings, platform-channel error, FGS refused — degrade silently to
+      // foreground-only. No regression versus the pre-background behaviour.
+      _sub = null;
+    }
+  }
+
+  /// Platform location settings for the keep-alive stream. On Android this
+  /// attaches the foreground-service notification (required by the OS to run a
+  /// location FGS); on iOS it enables background location updates.
+  LocationSettings _backgroundSettings() {
+    if (Platform.isAndroid) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+        intervalDuration: interval,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'SafeZone',
+          notificationText: 'ກຳລັງແບ່ງປັນຕຳແໜ່ງສຸກເສີນ',
+          enableWakeLock: false,
+          setOngoing: false,
+        ),
+      );
+    }
+    if (Platform.isIOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+        allowBackgroundLocationUpdates: true,
+        showBackgroundLocationIndicator: false,
+        pauseLocationUpdatesAutomatically: false,
+      );
+    }
+    return const LocationSettings(accuracy: LocationAccuracy.high);
+  }
+
+  /// True when the background stream has delivered a fix recent enough to post
+  /// without taking a fresh one-shot read. Pure (takes [now]) so it is testable.
+  @visibleForTesting
+  bool cachedFixIsFresh(DateTime now) {
+    final at = _lastFixAt;
+    return _lastFix != null && at != null && now.difference(at) <= _freshWindow;
   }
 
   Future<void> _tick() async {
@@ -102,11 +216,18 @@ class LiveTrackingService {
 
     _posting = true;
     try {
-      // Time-limit the GPS acquisition too, not just the POST. Without this a
-      // hung fix would pin `_posting` true forever (see the cap note above).
-      final loc = await LocationService.instance
-          .getCurrentLocation(timeLimit: _postTimeout);
-      final pos = loc.position;
+      // Prefer a fresh fix the background stream already delivered (instant, and
+      // available even when the screen is off). Only when the cache is stale or
+      // empty — no background grant, or the stream is quiet — pay for a one-shot
+      // read, time-limited so a hung fix can't pin `_posting` true forever.
+      Position? pos;
+      if (cachedFixIsFresh(DateTime.now())) {
+        pos = _lastFix;
+      } else {
+        final loc = await LocationService.instance
+            .getCurrentLocation(timeLimit: _postTimeout);
+        pos = loc.position;
+      }
       if (pos == null) return; // no fix this tick; try again next interval
 
       final res = await http
@@ -145,4 +266,20 @@ class LiveTrackingService {
       _posting = false;
     }
   }
+
+  // ── Test seams (device-free). ─────────────────────────────────────────────
+  @visibleForTesting
+  void debugSetSubscription(StreamSubscription<Position>? sub) => _sub = sub;
+
+  @visibleForTesting
+  bool get debugHasSubscription => _sub != null;
+
+  @visibleForTesting
+  void debugSetCachedFix(Position? fix, DateTime? at) {
+    _lastFix = fix;
+    _lastFixAt = at;
+  }
+
+  @visibleForTesting
+  bool get debugHasCachedFix => _lastFix != null;
 }

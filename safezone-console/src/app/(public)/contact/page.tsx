@@ -64,7 +64,7 @@ export default function ContactPage() {
             </p>
             <Link
               href="/report"
-              className="mt-4 inline-flex h-10 items-center gap-2 rounded-sm bg-critical px-5 font-lao text-sm font-semibold leading-lao text-critical-foreground transition-colors duration-fast hover:bg-critical/90"
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-5 font-lao text-sm font-semibold leading-lao text-primary-foreground transition-colors duration-fast hover:bg-primary/90"
             >
               <ShieldAlert aria-hidden className="size-4" />
               ໄປທີ່ແບບຟອມ

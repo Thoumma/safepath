@@ -15,6 +15,9 @@ class TraffikReport {
   final DateTime? observedAt;
   final String? reporterContact;
 
+  /// Opaque storage paths returned by `POST /api/report/photo`, not URLs.
+  final List<String> photoUrls;
+
   const TraffikReport({
     required this.category,
     required this.description,
@@ -25,6 +28,7 @@ class TraffikReport {
     this.lng,
     this.observedAt,
     this.reporterContact,
+    this.photoUrls = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -40,6 +44,7 @@ class TraffikReport {
           'observedAt': observedAt!.toUtc().toIso8601String(),
         if (reporterContact != null && reporterContact!.isNotEmpty)
           'reporterContact': reporterContact,
+        if (photoUrls.isNotEmpty) 'photoUrls': photoUrls,
         'source': 'MOBILE_APP',
       };
 }

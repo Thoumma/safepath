@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Phone } from "lucide-react";
+import { photosEnabled } from "@/lib/report-storage";
 import { ReportForm } from "./report-form";
 
 export const metadata: Metadata = {
@@ -29,7 +30,7 @@ export default function ReportPage() {
       </div>
 
       <div className="mt-8">
-        <ReportForm />
+        <ReportForm photosEnabled={photosEnabled()} />
       </div>
     </section>
   );

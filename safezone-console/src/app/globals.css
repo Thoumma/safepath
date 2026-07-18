@@ -252,6 +252,89 @@
   }
 }
 
+/* ============================================================================
+   Public website palette — "Trust Teal" (Blue Heart)
+
+   The public site (Home / About / Contact / Report / Data) is the front door
+   for survivors, families and bystanders — it should read humanitarian and
+   calm, not like the institutional navy+cream of the staff ops console. Teal is
+   the international colour of anti-trafficking awareness (the UN "Blue Heart").
+
+   Scoped to `.public-surface` (set on the (public) layout root) so it overrides
+   ONLY the brand-neutral tokens there; the `/admin` console keeps its Swiss
+   navy system. The signal colours (critical red, warning amber, success
+   emerald) are deliberately NOT overridden — they inherit from :root and keep
+   their meaning, so red still means danger and green still means safe.
+   ========================================================================= */
+@layer base {
+  .public-surface {
+    --background: 180 20% 96%; /* cool near-white #F4F7F7 */
+    --foreground: 178 33% 9%; /* near-black teal #10201F */
+    --card: 0 0% 100%;
+    --card-foreground: 178 33% 9%;
+
+    --primary: 179 79% 27%; /* deep teal #0E7C7B — white text is 5.0:1 (AA) */
+    --primary-foreground: 180 25% 97%;
+    --secondary: 179 79% 27%;
+    --secondary-foreground: 180 25% 97%;
+
+    --muted: 174 15% 92%;
+    --muted-foreground: 178 13% 32%; /* ≥4.5:1 on the teal paper */
+    --accent: 175 35% 88%; /* soft teal wash #D6ECEA */
+    --accent-foreground: 179 79% 22%;
+
+    --border: 176 15% 88%;
+    --border-strong: 178 33% 9%;
+    --input: 176 15% 88%;
+    --ring: 179 70% 33%;
+  }
+
+  /* Dark: teal-slate ground, primary lifted so it holds contrast at night. */
+  .dark .public-surface,
+  [data-theme="dark"] .public-surface {
+    --background: 184 22% 9%;
+    --foreground: 180 10% 91%;
+    --card: 186 20% 12%;
+    --card-foreground: 180 10% 91%;
+
+    --primary: 178 52% 55%; /* lifted teal; dark text on it */
+    --primary-foreground: 184 22% 9%;
+    --secondary: 186 18% 20%;
+    --secondary-foreground: 180 10% 91%;
+
+    --muted: 186 16% 16%;
+    --muted-foreground: 184 8% 66%;
+    --accent: 186 18% 20%;
+    --accent-foreground: 180 10% 91%;
+
+    --border: 186 14% 22%;
+    --border-strong: 180 10% 91%;
+    --input: 186 14% 22%;
+    --ring: 178 52% 55%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.light) .public-surface {
+      --background: 184 22% 9%;
+      --foreground: 180 10% 91%;
+      --card: 186 20% 12%;
+      --card-foreground: 180 10% 91%;
+      --primary: 178 52% 55%;
+      --primary-foreground: 184 22% 9%;
+      --secondary: 186 18% 20%;
+      --secondary-foreground: 180 10% 91%;
+      --muted: 186 16% 16%;
+      --muted-foreground: 184 8% 66%;
+      --accent: 186 18% 20%;
+      --accent-foreground: 180 10% 91%;
+      --border: 186 14% 22%;
+      --border-strong: 180 10% 91%;
+      --input: 186 14% 22%;
+      --ring: 178 52% 55%;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

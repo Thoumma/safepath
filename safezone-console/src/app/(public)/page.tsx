@@ -1,9 +1,16 @@
 import Link from "next/link";
 import {
   ShieldAlert, ArrowRight, EyeOff, Lock, Database, Phone,
-  HardHat, UserX, Home as HomeIcon, Baby, HeartCrack, HelpCircle, Check,
+  HardHat, UserX, Home as HomeIcon, Baby, HeartCrack, HelpCircle, Check, BarChart3,
 } from "lucide-react";
 import { REPORT_CATEGORIES, SPOT_THE_SIGNS } from "@/lib/trafficking-signs";
+import { Reveal } from "@/components/motion";
+import { BigStatFigure } from "@/components/stat-figure";
+import { GLOBAL_SCALE, REGION_SCALE, LAOS_FACTS } from "@/lib/trafficking-stats";
+
+// The teaser funnels world → region → home: modern slavery, the region we sit
+// in, and Laos's own identified victims. The full picture lives on /data.
+const TEASER_STATS = [GLOBAL_SCALE[0], REGION_SCALE[0], GLOBAL_SCALE[3], LAOS_FACTS[0]];
 
 // Resolve the category icon names (strings in the shared data) to components.
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,7 +37,7 @@ export default function PublicHome() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/report"
-                className="inline-flex h-11 items-center gap-2 rounded-sm bg-critical px-6 font-lao text-sm font-semibold leading-lao text-critical-foreground transition-colors duration-fast hover:bg-critical/90"
+                className="inline-flex h-11 items-center gap-2 rounded-sm bg-primary px-6 font-lao text-sm font-semibold leading-lao text-primary-foreground transition-colors duration-fast hover:bg-primary/90"
               >
                 <ShieldAlert aria-hidden className="size-4" />
                 ລາຍງານການຄ້າມະນຸດ
@@ -59,6 +66,41 @@ export default function PublicHome() {
                   <span lang="en" className="text-2xs uppercase tracking-wider text-primary-foreground/60">{en}</span>
                 </span>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── The scale (teaser → /data) ───────────────────────────────────── */}
+      <section className="border-b border-border bg-card">
+        <div className="mx-auto max-w-page px-4 py-16 sm:px-6">
+          <Reveal className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                The scale
+              </span>
+              <h2 lang="lo" className="mt-2 font-lao text-2xl font-bold leading-lao sm:text-3xl">
+                ນີ້ ບໍ່ ແມ່ນ ບັນຫາ ໄກ ຕົວ
+              </h2>
+              <p lang="lo" className="mt-3 font-lao text-sm leading-lao text-muted-foreground">
+                ຕົວເລກ ທີ່ ຢືນຢັນ ແລ້ວ ຈາກ UN, UNODC, ILO ແລະ ອົງກອນ ສາກົນ — ຈາກ ໂລກ, ມາ ຮອດ ພາກ ພື້ນ, ຮອດ ບ້ານ ເຮົາ.
+              </p>
+            </div>
+            <Link
+              href="/data"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-sm border border-border px-4 font-lao text-sm font-semibold leading-lao transition-colors duration-fast hover:bg-background"
+            >
+              <BarChart3 aria-hidden className="size-4" />
+              ເບິ່ງ ຂໍ້ມູນ ທັງ ໝົດ
+              <ArrowRight aria-hidden className="size-4" />
+            </Link>
+          </Reveal>
+
+          <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+            {TEASER_STATS.map((stat, i) => (
+              <Reveal key={stat.enCaption} delay={i * 80}>
+                <BigStatFigure stat={stat} />
+              </Reveal>
             ))}
           </div>
         </div>
@@ -134,7 +176,7 @@ export default function PublicHome() {
           </div>
           <Link
             href="/report"
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-sm bg-critical px-6 font-lao text-sm font-semibold leading-lao text-critical-foreground transition-colors duration-fast hover:bg-critical/90"
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-sm bg-primary px-6 font-lao text-sm font-semibold leading-lao text-primary-foreground transition-colors duration-fast hover:bg-primary/90"
           >
             <ShieldAlert aria-hidden className="size-4" />
             ລາຍງານດຽວນີ້

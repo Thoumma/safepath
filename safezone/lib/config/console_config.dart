@@ -38,4 +38,9 @@ class ConsoleConfig {
   /// POST a suspected-trafficking report. Public and unauthenticated — no token
   /// needed, so it works even before the user has verified a phone.
   static Uri get reportEndpoint => Uri.parse('$baseUrl/api/report');
+
+  /// POST (multipart) one evidence photo for a report; returns `{path}`. Public,
+  /// like [reportEndpoint]. Replies 503 when the console has no storage key —
+  /// the app then just drops the photo and sends the report text-only.
+  static Uri get reportPhotoEndpoint => Uri.parse('$baseUrl/api/report/photo');
 }

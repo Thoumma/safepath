@@ -27,6 +27,7 @@ export function PublicFooter() {
             <h3 lang="lo" className="font-lao text-sm font-semibold leading-lao">ລິ້ງ</h3>
             <ul className="mt-3 space-y-2 font-lao text-sm leading-lao text-muted-foreground">
               <li><Link href="/" className="hover:text-foreground">ໜ້າຫຼັກ</Link></li>
+              <li><Link href="/data" className="hover:text-foreground">ຂໍ້ມູນ ການ ຄ້າ ມະນຸດ</Link></li>
               <li><Link href="/about" className="hover:text-foreground">ກ່ຽວກັບ</Link></li>
               <li><Link href="/contact" className="hover:text-foreground">ຕິດຕໍ່</Link></li>
               <li><Link href="/report" className="hover:text-foreground">ລາຍງານ</Link></li>

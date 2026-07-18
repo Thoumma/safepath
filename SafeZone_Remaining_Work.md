@@ -5,7 +5,7 @@ build plan, security log, UI redesign plan, and the auth + SQLite work. Items
 are grouped by priority. Each item lists the affected files and a concrete
 approach.
 
-_Last reviewed: 2026-07-16_
+_Last reviewed: 2026-07-19_
 
 ---
 
@@ -58,6 +58,39 @@ _Last reviewed: 2026-07-16_
 - Console verified: `npm run build` passes clean (public + `/admin/*` routes, new
   `/api/report`), tsc + Prisma clean.
 - `flutter analyze` clean; tests pass.
+- Report photo evidence (2026-07-19, Phase 6b — was P3 #13): reporters can attach
+  up to 3 evidence photos (web + app), stored **privately** (staff-only signed
+  URLs). New `src/lib/report-storage.ts` (service-role client, auto-creates the
+  private `report-photos` bucket, `uploadPhoto`/`signedUrl`, `photosEnabled()`
+  fail-open gate) + `POST /api/report/photo` (multipart, jpeg/png/webp ≤5 MB,
+  503 `photos_disabled` when unconfigured). `POST /api/report` now accepts/caps a
+  `photoUrls[]` (≤3 opaque paths). Web `report-form.tsx` + mobile
+  `report_form_screen.dart` add a picker (upload-on-select, thumbnails, remove);
+  `/admin/reports` renders signed-URL thumbnails. **Fail-open:** no
+  `SUPABASE_SERVICE_ROLE_KEY` → photo UI hidden, reports stay text-only; a failed
+  upload is dropped with a toast, report still sends. No DB migration
+  (`photoUrls` column pre-existed). **Setup:** add `SUPABASE_SERVICE_ROLE_KEY` to
+  `safezone-console/.env.local` (documented in `.env.example`). Console tsc +
+  `next build` clean; app `flutter analyze` + tests clean.
+- Background live tracking (2026-07-19 — was P3 #12): live tracking now survives
+  screen-off / backgrounding via geolocator's foreground service (**no new
+  package**). `LiveTrackingService` keeps its 20s `Timer` poster and adds a
+  best-effort `getPositionStream` (Android `ForegroundNotificationConfig`, iOS
+  `allowBackgroundLocationUpdates`) that refreshes a cached fix `_tick` posts when
+  fresh (≤45s), falling back to a one-shot read otherwise. **Duress-safe:**
+  `start()` is decoy-gated so the stream + its notification can never originate
+  under the fake password; `stop()` now cancels the subscription (tearing down the
+  FGS + notification) and `lock()→stop()` guarantees it's gone before any fake
+  unlock; `_tick` re-checks the gate. Background/Always permission is requested
+  lazily inside `start()` (after the decoy gate), degrading to foreground-only if
+  denied — any stream failure falls back to the old behaviour (no regression).
+  Manifest gains `ACCESS_BACKGROUND_LOCATION`/`FOREGROUND_SERVICE`/
+  `FOREGROUND_SERVICE_LOCATION`/`POST_NOTIFICATIONS`; Info.plist gains
+  `NSLocationAlwaysAndWhenInUseUsageDescription` + `UIBackgroundModes=[location]`.
+  New `test/live_tracking_test.dart` guards the duress-critical `stop()` teardown
+  + cached-fix freshness. `flutter analyze` + tests clean. **Remaining:** on-device
+  verification of background survival, the permission dialogs, and duress teardown
+  (see the manual matrix — cannot be exercised without a physical device).
 
 ---
 
@@ -153,8 +186,13 @@ so the panel shows "no image" for everyone.
 Biometric unlock, embassy integration, web/cloud encrypted backup — per the
 build plan §8, all remain roadmap.
 
-### 12. Background live tracking (screen off / app killed) — designed, build next
-**Status:** live tracking (2026-07-18) runs only while the app is open and
+### 12. Background live tracking (screen off / app killed) — ✅ built (2026-07-19)
+**Done** — see the completion note in the "Already complete" section. Code +
+`flutter analyze`/tests are clean; the remaining work is on-device verification
+of background survival, permission dialogs, and duress teardown (manual matrix
+below). Original design retained for reference:
+
+**Status (original):** live tracking (2026-07-18) ran only while the app was open and
 unlocked. When the phone is locked or backgrounded it stops, so a duty officer
 following an open case loses fresh fixes the moment the user pockets the phone.
 - **Why deferred:** needs a native Android **foreground service** + a persistent
@@ -177,8 +215,13 @@ following an open case loses fresh fixes the moment the user pockets the phone.
   `NSLocationAlwaysAndWhenInUseUsageDescription` + `UIBackgroundModes=[location]`
   in `ios/Runner/Info.plist`. Needs on-device verification.
 
-### 13. Report photo evidence (Phase 6b) — designed, build next
-**Status:** trafficking reports (2026-07-19) are text + location only. STOP THE
+### 13. Report photo evidence (Phase 6b) — ✅ built (2026-07-19)
+**Done** — see the completion note in the "Already complete" section (console tsc
++ build clean, app analyze + tests clean). Needs `SUPABASE_SERVICE_ROLE_KEY` in
+`safezone-console/.env.local` to enable; fail-open without it. Original design
+retained for reference:
+
+**Status (original):** trafficking reports were text + location only. STOP THE
 TRAFFIK's app centres on photos; the `TraffikReport.photoUrls` column already
 exists (added Phase 1), so **no DB migration** is needed.
 - **Approach — private storage, staff-only signed URLs (STOP APP posture):**
@@ -206,6 +249,7 @@ MVP's composer-based approach; resolved properly by item **#6** (backend).
 ---
 
 ## Suggested order
-P1 is complete (#1–#4, 2026-07-16). **Next session: #12 background tracking +
-#13 report photos** (both designed above, ready to build). Then #5 edit/primary
-contact → remaining P3 roadmap as scope allows.
+P1 is complete (#1–#4, 2026-07-16). #12 background tracking + #13 report photos
+are built (2026-07-19); #12 still needs the on-device verification matrix, and
+#13 needs `SUPABASE_SERVICE_ROLE_KEY` set to turn photos on. **Next session:**
+#5 edit/primary contact → remaining P3 roadmap (#6–#11) as scope allows.

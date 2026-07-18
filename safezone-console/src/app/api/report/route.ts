@@ -21,10 +21,12 @@ export const dynamic = "force-dynamic";
  * Real captcha / rate-limiting is a follow-up (kept dependency-free for now).
  *
  * Body: { category, description, country?, city?, locationText?, lat?, lng?,
- *         observedAt?, reporterContact?, source?, website? (honeypot) }
+ *         observedAt?, reporterContact?, photoUrls?, source?, website? (honeypot) }
  */
 const CATEGORIES = ["labour", "sexual", "domestic", "child", "forced_marriage", "other"];
 const MAX = { description: 5000, short: 200, contact: 200 };
+const MAX_PHOTOS = 3;
+const MAX_PATH_LEN = 300;
 
 export async function POST(req: Request) {
   let b: {
@@ -37,6 +39,7 @@ export async function POST(req: Request) {
     lng?: number;
     observedAt?: string;
     reporterContact?: string;
+    photoUrls?: string[]; // opaque storage paths from POST /api/report/photo
     source?: ReportSource;
     website?: string; // honeypot — must stay empty
   };
@@ -75,6 +78,15 @@ export async function POST(req: Request) {
   const reporterContact = clip(b.reporterContact, MAX.contact);
   const source: ReportSource = b.source === "MOBILE_APP" ? "MOBILE_APP" : "PUBLIC_WEB";
 
+  // Evidence photo paths are opaque storage keys already produced by
+  // POST /api/report/photo (not free-text URLs). Cap defensively anyway.
+  const photoUrls = Array.isArray(b.photoUrls)
+    ? b.photoUrls
+        .filter((p): p is string => typeof p === "string" && p.trim() !== "")
+        .slice(0, MAX_PHOTOS)
+        .map((p) => p.slice(0, MAX_PATH_LEN))
+    : [];
+
   // Human ref number: TIP-YYYY-MMDD-NNN, sequential within the day.
   const now = new Date();
   const y = now.getFullYear();
@@ -95,6 +107,7 @@ export async function POST(req: Request) {
       lng: typeof b.lng === "number" ? b.lng : null,
       observedAt,
       source,
+      photoUrls,
       // Anonymous unless the reporter chose to leave a contact.
       anonymous: !reporterContact,
       reporterContact,

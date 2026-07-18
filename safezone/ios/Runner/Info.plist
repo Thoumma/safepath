@@ -72,6 +72,12 @@
 	<string>ໃຊ້ຄັງຮູບເພື່ອເລືອກພາສປອດ</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ໃຊ້ຕຳແໜ່ງເພື່ອສົ່ງຈຸດສຸກເສີນ</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>ໃຊ້ຕຳແໜ່ງເບື້ອງຫຼັງເພື່ອຕິດຕາມເມື່ອສົ່ງ SOS</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>sms</string>

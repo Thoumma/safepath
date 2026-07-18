@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
  */
 const LINKS = [
   { href: "/", lo: "ໜ້າຫຼັກ", en: "Home" },
+  { href: "/data", lo: "ຂໍ້ມູນ", en: "The data" },
   { href: "/about", lo: "ກ່ຽວກັບ", en: "About" },
   { href: "/contact", lo: "ຕິດຕໍ່", en: "Contact" },
 ];
@@ -60,7 +61,7 @@ export function PublicNav() {
           ))}
           <Link
             href="/report"
-            className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-sm bg-critical px-4 font-lao text-sm font-semibold leading-lao text-critical-foreground transition-colors duration-fast hover:bg-critical/90"
+            className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-sm bg-primary px-4 font-lao text-sm font-semibold leading-lao text-primary-foreground transition-colors duration-fast hover:bg-primary/90"
           >
             ລາຍງານ
           </Link>
@@ -78,7 +79,7 @@ export function PublicNav() {
         <div className="ml-auto flex items-center gap-2 md:hidden">
           <Link
             href="/report"
-            className="inline-flex h-9 items-center rounded-sm bg-critical px-3 font-lao text-sm font-semibold leading-lao text-critical-foreground"
+            className="inline-flex h-9 items-center rounded-sm bg-primary px-3 font-lao text-sm font-semibold leading-lao text-primary-foreground"
           >
             ລາຍງານ
           </Link>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ShieldCheck, Loader2, AlertCircle, EyeOff } from "lucide-react";
+import { useRef, useState } from "react";
+import { ShieldCheck, Loader2, AlertCircle, EyeOff, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,9 @@ import { REPORT_CATEGORIES } from "@/lib/trafficking-signs";
 import { cn } from "@/lib/utils";
 
 type Status = "idle" | "sending" | "done" | "error";
+type Photo = { path: string; previewUrl: string };
+
+const MAX_PHOTOS = 3;
 
 /**
  * The public report form. Posts to the unauthenticated `POST /api/report`.
@@ -18,11 +21,49 @@ type Status = "idle" | "sending" | "done" | "error";
  * contact field is opt-in and clearly labelled. The `website` field is a
  * honeypot (hidden from humans); bots that fill it get a fake success.
  */
-export function ReportForm() {
+export function ReportForm({ photosEnabled }: { photosEnabled: boolean }) {
   const [category, setCategory] = useState<string>("");
   const [status, setStatus] = useState<Status>("idle");
   const [refNo, setRefNo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function onPickPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // allow re-picking the same file
+    if (!files.length) return;
+
+    setUploading(true);
+    for (const file of files) {
+      if (photos.length >= MAX_PHOTOS) break;
+      try {
+        const body = new FormData();
+        body.append("file", file);
+        const res = await fetch("/api/report/photo", { method: "POST", body });
+        if (!res.ok) throw new Error();
+        const { path } = (await res.json()) as { path: string };
+        setPhotos((prev) =>
+          prev.length >= MAX_PHOTOS
+            ? prev
+            : [...prev, { path, previewUrl: URL.createObjectURL(file) }]
+        );
+      } catch {
+        // Photos are optional — a failed upload is dropped, the report still sends.
+        setError("ແນບບາງຮູບບໍ່ໄດ້ — ຈະສົ່ງລາຍງານໂດຍບໍ່ມີຮູບນັ້ນ");
+      }
+    }
+    setUploading(false);
+  }
+
+  function removePhoto(path: string) {
+    setPhotos((prev) => {
+      const gone = prev.find((p) => p.path === path);
+      if (gone) URL.revokeObjectURL(gone.previewUrl);
+      return prev.filter((p) => p.path !== path);
+    });
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,6 +94,7 @@ export function ReportForm() {
           locationText: data.get("locationText") || undefined,
           observedAt: data.get("observedAt") || undefined,
           reporterContact: data.get("reporterContact") || undefined,
+          photoUrls: photos.length ? photos.map((p) => p.path) : undefined,
           website: data.get("website") || undefined, // honeypot
           source: "PUBLIC_WEB",
         }),
@@ -63,6 +105,8 @@ export function ReportForm() {
       setStatus("done");
       form.reset();
       setCategory("");
+      photos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      setPhotos([]);
     } catch {
       setStatus("error");
       setError("ສົ່ງບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່.");
@@ -152,6 +196,52 @@ export function ReportForm() {
         <Input id="observedAt" name="observedAt" type="date" className="mt-3 max-w-xs" />
       </div>
 
+      {/* Photos (opt-in, only when storage is configured) */}
+      {photosEnabled && (
+        <div>
+          <h3 lang="lo" className="font-lao text-sm font-semibold leading-lao">
+            ຮູບ <span className="font-normal text-muted-foreground">(ຖ້າມີ)</span>
+          </h3>
+          <p lang="lo" className="mt-1 font-lao text-xs leading-lao text-muted-foreground">
+            ແນບໄດ້ສູງສຸດ {MAX_PHOTOS} ຮູບ. ຮູບເປັນຄວາມລັບ — ມີແຕ່ທີມງານເຫັນ.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {photos.map((p) => (
+              <div key={p.path} className="relative size-20 overflow-hidden rounded-sm border border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.previewUrl} alt="" className="size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(p.path)}
+                  aria-label="ລຶບຮູບ"
+                  className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+            {photos.length < MAX_PHOTOS && (
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                disabled={uploading}
+                className="grid size-20 place-items-center rounded-sm border border-dashed border-border text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-50"
+              >
+                {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+            onChange={onPickPhotos}
+          />
+        </div>
+      )}
+
       {/* Contact (opt-in) */}
       <div className="rounded-sm border border-border bg-muted/40 p-4">
         <div className="flex items-center gap-2">
@@ -180,7 +270,7 @@ export function ReportForm() {
       )}
 
       <div className="flex items-center gap-4">
-        <Button type="submit" variant="destructive" size="lg" disabled={status === "sending"}>
+        <Button type="submit" size="lg" disabled={status === "sending"}>
           {status === "sending" ? (
             <>
               <Loader2 aria-hidden className="size-4 animate-spin" />

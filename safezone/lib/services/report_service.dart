@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../config/console_config.dart';
 import '../models/traffik_report.dart';
@@ -68,6 +70,34 @@ class ReportService {
       return const ReportOutcome(ReportStatus.offline);
     } catch (_) {
       return const ReportOutcome(ReportStatus.failed);
+    }
+  }
+
+  /// Uploads one evidence photo and returns its opaque storage path, or null on
+  /// any failure (no console URL, 503 photos-disabled, network error, reject).
+  ///
+  /// Photos are optional: the caller drops a null and still sends the report, so
+  /// this never throws. [contentType] is the image MIME type (jpeg/png/webp).
+  Future<String?> uploadPhoto(Uint8List bytes, String contentType) async {
+    if (!ConsoleConfig.isConfigured) return null;
+    try {
+      final parts = contentType.split('/');
+      final req = http.MultipartRequest('POST', ConsoleConfig.reportPhotoEndpoint)
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: 'evidence.${parts.length == 2 ? parts[1] : 'jpg'}',
+          contentType: MediaType(
+            parts.isNotEmpty ? parts[0] : 'image',
+            parts.length == 2 ? parts[1] : 'jpeg',
+          ),
+        ));
+      final streamed = await req.send().timeout(const Duration(seconds: 30));
+      if (streamed.statusCode != 201) return null;
+      final body = await streamed.stream.bytesToString();
+      return (jsonDecode(body) as Map<String, dynamic>)['path'] as String?;
+    } catch (_) {
+      return null;
     }
   }
 }

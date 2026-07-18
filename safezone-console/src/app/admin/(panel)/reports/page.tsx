@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { photosEnabled, signedUrl } from "@/lib/report-storage";
 import { REPORT_STATUS, type ReportStatusKey } from "@/lib/constants";
 import { REPORT_CATEGORIES } from "@/lib/trafficking-signs";
 import { agoLao, cn } from "@/lib/utils";
@@ -39,6 +40,22 @@ export default async function ReportsTriagePage({ searchParams }: { searchParams
     orderBy: { createdAt: "desc" },
     take: 200,
   });
+
+  // Sign each report's evidence paths for staff viewing (short-lived URLs).
+  // Only touch storage when photos are configured; broken paths sign to null.
+  const photosById = new Map<string, string[]>();
+  if (photosEnabled()) {
+    await Promise.all(
+      reports
+        .filter((r) => r.photoUrls.length > 0)
+        .map(async (r) => {
+          const urls = (await Promise.all(r.photoUrls.map((p) => signedUrl(p)))).filter(
+            (u): u is string => Boolean(u)
+          );
+          if (urls.length) photosById.set(r.id, urls);
+        })
+    );
+  }
 
   return (
     <>
@@ -101,6 +118,27 @@ export default async function ReportsTriagePage({ searchParams }: { searchParams
                       <p lang="lo" className="mt-3 whitespace-pre-wrap font-lao text-sm leading-lao">
                         {r.description}
                       </p>
+
+                      {photosById.get(r.id) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {photosById.get(r.id)!.map((url, i) => (
+                            <a
+                              key={i}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block size-20 overflow-hidden rounded-sm border border-border bg-muted transition-opacity hover:opacity-80"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt={`ຫຼັກຖານ ${i + 1}`}
+                                className="size-full object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
 
                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
                         {place && (
