@@ -94,6 +94,48 @@ _Last reviewed: 2026-07-19_
 
 ---
 
+## ⏭ Next session — planned (requested 2026-07-19)
+
+### A. Mobile end-to-end functional verification (on device)
+Confirm **every mobile function actually works** on a real device/emulator — not
+just `flutter analyze` / `flutter test`. Absorbs the still-pending on-device
+matrix for #12 (background tracking) and a live run of the #13 photo flow.
+- **How:** run with `safezone/run-lan.ps1` (console + Supabase wired over LAN).
+- **Walk through and record pass/fail for each:**
+  - First-run welcome/onboarding → setup.
+  - Login: **real** password (opens vault); **fake/duress** password (opens empty
+    decoy + fires silent SOS → console CRITICAL); wrong password.
+  - Lockout: 5 failures → countdown, doubling, persists across relaunch.
+  - New-device **OTP**: real login on unknown device → OTP required, approved by a
+    trusted contact.
+  - **SOS**: two channels (console `POST /api/sos` + SMS composer to all contacts);
+    offline → queued in `SosOutbox` → flush on next launch; "I'm safe" resolves.
+  - **Live tracking**: 20s stream while case open; Guardian tab live indicator;
+    **#12** background survival (screen off), permission dialogs, **duress teardown**
+    (notification gone before a fake unlock).
+  - **Passport vault**: pick/photo → MRZ OCR autofill → encrypted store; share
+    temp-file cleanup; decoy never reveals the passport.
+  - Trusted contacts add/delete (edit is #5).
+  - **Report**: submit text + GPS + **#13 photos** → appears in `/admin/reports`.
+  - Settings / account management.
+- **Output:** fix anything that fails; note results here.
+
+### B. Donation — admin configuration (#14a)
+Add a donation config to the staff settings, **mirroring the existing MOFA
+passport-API settings pattern** (`system_settings` table, audit-logged,
+`/admin/settings`). Suggested fields: enable toggle, title + blurb (Lao + en),
+donation link/URL, bank account details, and/or a QR image (reuse the private
+Supabase Storage helper from #13 if an image upload is wanted). Server action
+updates + audit-logs exactly like the passport settings.
+
+### C. Donation — public website (#14b)
+Add a public **Donate** page/section that renders the configured donation info
+(link / bank / QR), Lao-first, in the Trust-Teal design system; add a nav +
+footer link. **Fail-open:** if donation is disabled/unconfigured in settings, hide
+the donate UI entirely. Read the settings server-side (like other `/admin` reads).
+
+---
+
 ## P1 — Should fix soon (quality / security gaps)
 
 ### 1. Enforce the failed-attempt lockout on the lock screen ✅ done (2026-07-16)
@@ -251,5 +293,8 @@ MVP's composer-based approach; resolved properly by item **#6** (backend).
 ## Suggested order
 P1 is complete (#1–#4, 2026-07-16). #12 background tracking + #13 report photos
 are built (2026-07-19); #12 still needs the on-device verification matrix, and
-#13 needs `SUPABASE_SERVICE_ROLE_KEY` set to turn photos on. **Next session:**
-#5 edit/primary contact → remaining P3 roadmap (#6–#11) as scope allows.
+#13 needs `SUPABASE_SERVICE_ROLE_KEY` set to turn photos on. Public site is on the
+Trust-Teal palette (2026-07-19). **Next session (see "Next session — planned"
+above):** (A) mobile end-to-end functional verification on device, (B) donation
+admin configuration, (C) donation on the public website. Then #5 edit/primary
+contact → remaining P3 roadmap (#6–#11) as scope allows.
