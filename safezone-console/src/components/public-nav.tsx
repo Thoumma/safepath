@@ -30,7 +30,7 @@ export function PublicNav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-16 max-w-page items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-page items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <span className="grid size-7 place-items-center rounded-sm bg-primary text-primary-foreground">
             <Shield aria-hidden className="size-4" />
@@ -98,7 +98,7 @@ export function PublicNav() {
       {/* Mobile sheet */}
       {open && (
         <nav className="border-t border-border bg-background md:hidden">
-          <ul className="mx-auto max-w-page px-4 py-2 sm:px-6">
+          <ul className="mx-auto max-w-page px-4 py-2 sm:px-6 lg:px-8">
             {LINKS.map((l) => (
               <li key={l.href}>
                 <Link

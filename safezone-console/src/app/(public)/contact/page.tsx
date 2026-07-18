@@ -17,7 +17,7 @@ export default function ContactPage() {
   return (
     <>
       <section className="border-b border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-14 sm:px-6 lg:px-8">
           <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
             Contact
           </span>
@@ -30,7 +30,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-page gap-6 px-4 py-14 sm:px-6 lg:grid-cols-2">
+      <section className="mx-auto grid max-w-page gap-6 px-4 py-14 sm:px-6 lg:px-8 lg:grid-cols-2">
         {/* Hotlines */}
         <div>
           <h2 lang="lo" className="font-lao text-xl font-bold leading-lao">ເບີໂທສຸກເສີນ</h2>

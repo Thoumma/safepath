@@ -18,7 +18,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     // `public-surface` rescopes the design tokens to the Trust-Teal (Blue Heart)
     // public palette — see globals.css. The staff `/admin` console keeps the
     // Swiss navy system untouched.
-    <div className="public-surface flex min-h-screen flex-col bg-background">
+    <div className="public-surface  flex min-h-screen flex-col bg-background">
       <PublicNav />
       <main className="flex-1">{children}</main>
       <PublicFooter />

@@ -9,7 +9,7 @@ import { Shield, Phone } from "lucide-react";
 export function PublicFooter() {
   return (
     <footer className="mt-auto border-t border-border bg-card">
-      <div className="mx-auto max-w-page px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-page px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5">

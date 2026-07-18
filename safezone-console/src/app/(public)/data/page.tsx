@@ -75,7 +75,7 @@ export default function DataPage() {
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-critical/20 blur-3xl"
         />
-        <div className="relative mx-auto max-w-page px-4 py-20 sm:px-6 lg:py-28">
+        <div className="relative mx-auto max-w-page px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
           <Reveal className="max-w-3xl">
             <SectionEyebrow en="SafeZone · The data behind the mission" />
             <h1 lang="lo" className="mt-4 font-lao text-3xl font-bold leading-snug sm:text-4xl lg:text-5xl">
@@ -113,7 +113,7 @@ export default function DataPage() {
 
       {/* ── The honesty note ───────────────────────────────────────────────── */}
       <section className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-page items-start gap-3 px-4 py-6 sm:px-6">
+        <div className="mx-auto flex max-w-page items-start gap-3 px-4 py-6 sm:px-6 lg:px-8">
           <Info aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
           <p className="flex flex-col gap-0.5">
             <span lang="lo" className="font-lao text-sm leading-lao">{HIDDEN_NOTE.lo}</span>
@@ -123,7 +123,7 @@ export default function DataPage() {
       </section>
 
       {/* ── The scale ──────────────────────────────────────────────────────── */}
-      <section id="scale" className="mx-auto max-w-page scroll-mt-20 px-4 py-16 sm:px-6">
+      <section id="scale" className="mx-auto max-w-page scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8">
         <Reveal className="max-w-2xl">
           <SectionEyebrow en="The scale" />
           <h2 lang="lo" className="mt-2 font-lao text-2xl font-bold leading-lao sm:text-3xl">
@@ -141,7 +141,7 @@ export default function DataPage() {
 
       {/* ── Who: isotype pictographs ───────────────────────────────────────── */}
       <section className="border-t border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
           <Reveal className="max-w-2xl">
             <SectionEyebrow en="Who is exploited" />
             <h2 lang="lo" className="mt-2 font-lao text-2xl font-bold leading-lao sm:text-3xl">
@@ -186,7 +186,7 @@ export default function DataPage() {
       </section>
 
       {/* ── Forms of exploitation ──────────────────────────────────────────── */}
-      <section className="mx-auto max-w-page px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-16">
           <Reveal>
             <SectionEyebrow en="Forms of exploitation" />
@@ -210,7 +210,7 @@ export default function DataPage() {
 
       {/* ── Where: the region closest to home ──────────────────────────────── */}
       <section className="border-t border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
           <Reveal className="max-w-2xl">
             <SectionEyebrow en="Where — closest to home" />
             <h2 lang="lo" className="mt-2 font-lao text-2xl font-bold leading-lao sm:text-3xl">
@@ -253,7 +253,7 @@ export default function DataPage() {
       </section>
 
       {/* ── Laos in focus ──────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-page px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
         <Reveal className="max-w-2xl">
           <SectionEyebrow en="Laos in focus" />
           <h2 lang="lo" className="mt-2 font-lao text-2xl font-bold leading-lao sm:text-3xl">
@@ -315,7 +315,7 @@ export default function DataPage() {
 
       {/* ── Sources ────────────────────────────────────────────────────────── */}
       <section className="border-t border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-14 sm:px-6 lg:px-8">
           <SectionEyebrow en="Sources" />
           <h2 lang="lo" className="mt-2 font-lao text-xl font-bold leading-lao">
             ແຫຼ່ງ ຂໍ້ມູນ
@@ -345,7 +345,7 @@ export default function DataPage() {
       </section>
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-page px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start gap-6 rounded-sm border border-border bg-primary p-8 text-primary-foreground sm:flex-row sm:items-center sm:justify-between sm:p-10">
           <div>
             <h2 lang="lo" className="font-lao text-2xl font-bold leading-lao">

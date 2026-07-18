@@ -22,7 +22,7 @@ export default function PublicHome() {
     <>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="border-b border-border bg-primary text-primary-foreground">
-        <div className="mx-auto grid max-w-page gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1.3fr_1fr] lg:py-24">
+        <div className="mx-auto grid max-w-page gap-8 px-4 py-16 sm:px-6 lg:px-8 lg:grid-cols-[1.3fr_1fr] lg:py-24">
           <div>
             <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-primary-foreground/70">
               SafeZone · Anti-trafficking
@@ -73,7 +73,7 @@ export default function PublicHome() {
 
       {/* ── The scale (teaser → /data) ───────────────────────────────────── */}
       <section className="border-b border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
           <Reveal className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -107,7 +107,7 @@ export default function PublicHome() {
       </section>
 
       {/* ── Spot the signs ───────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-page px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
             Spot the signs
@@ -135,7 +135,7 @@ export default function PublicHome() {
 
       {/* ── Types of exploitation ────────────────────────────────────────── */}
       <section className="border-t border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
               What to report
@@ -166,7 +166,7 @@ export default function PublicHome() {
       </section>
 
       {/* ── Report CTA ───────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-page px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start gap-6 rounded-sm border border-border bg-primary p-8 text-primary-foreground sm:flex-row sm:items-center sm:justify-between sm:p-10">
           <div>
             <h2 lang="lo" className="font-lao text-2xl font-bold leading-lao">ເຫັນບາງຢ່າງບໍ? ບອກພວກເຮົາ.</h2>

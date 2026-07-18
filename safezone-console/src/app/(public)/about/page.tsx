@@ -11,7 +11,7 @@ export default function AboutPage() {
   return (
     <>
       <section className="border-b border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-14 sm:px-6 lg:px-8">
           <span lang="en" className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
             About
           </span>
@@ -27,7 +27,7 @@ export default function AboutPage() {
       </section>
 
       {/* How a report is handled — the trust story */}
-      <section className="mx-auto max-w-page px-4 py-14 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-14 sm:px-6 lg:px-8">
         <h2 lang="lo" className="font-lao text-2xl font-bold leading-lao">ລາຍງານຂອງທ່ານຖືກຈັດການແນວໃດ</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {[
@@ -54,7 +54,7 @@ export default function AboutPage() {
 
       {/* The app */}
       <section className="border-t border-border bg-card">
-        <div className="mx-auto max-w-page px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-page px-4 py-14 sm:px-6 lg:px-8">
           <div className="flex items-start gap-3">
             <Smartphone aria-hidden className="mt-1 size-5 shrink-0 text-foreground" />
             <div>
@@ -69,7 +69,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-page px-4 py-14 sm:px-6">
+      <section className="mx-auto max-w-page px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start gap-4 rounded-sm border border-border bg-primary p-8 text-primary-foreground sm:flex-row sm:items-center sm:justify-between">
           <h2 lang="lo" className="font-lao text-xl font-bold leading-lao">ພ້ອມທີ່ຈະລາຍງານແລ້ວບໍ?</h2>
           <Link
