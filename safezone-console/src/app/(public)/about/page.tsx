@@ -74,7 +74,7 @@ export default function AboutPage() {
           <h2 lang="lo" className="font-lao text-xl font-bold leading-lao">ພ້ອມທີ່ຈະລາຍງານແລ້ວບໍ?</h2>
           <Link
             href="/report"
-            className="inline-flex h-11 items-center gap-2 rounded-sm bg-primary px-6 font-lao text-sm font-semibold leading-lao text-primary-foreground transition-colors duration-fast hover:bg-primary/90"
+            className="inline-flex h-11 items-center gap-2 rounded-sm bg-primary-foreground px-6 font-lao text-sm font-semibold leading-lao text-primary transition-colors duration-fast hover:bg-primary-foreground/90"
           >
             <ShieldAlert aria-hidden className="size-4" />
             ລາຍງານການຄ້າມະນຸດ

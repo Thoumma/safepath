@@ -176,7 +176,7 @@ export default function PublicHome() {
           </div>
           <Link
             href="/report"
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-sm bg-primary px-6 font-lao text-sm font-semibold leading-lao text-primary-foreground transition-colors duration-fast hover:bg-primary/90"
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-sm bg-primary-foreground px-6 font-lao text-sm font-semibold leading-lao text-primary transition-colors duration-fast hover:bg-primary-foreground/90"
           >
             <ShieldAlert aria-hidden className="size-4" />
             ລາຍງານດຽວນີ້
