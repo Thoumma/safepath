@@ -103,18 +103,44 @@ model Case {
   country     String?
   lat         Float?
   lng         Float?
-  routedTo    PartnerType? @map("routed_to")
-  partnerId   String?      @map("partner_id")
-  partner     Partner?     @relation(fields: [partnerId], references: [id])
-  responderId String?      @map("responder_id")
-  responder   Responder?   @relation(fields: [responderId], references: [id])
-  createdAt   DateTime     @default(now()) @map("created_at")
-  resolvedAt  DateTime?    @map("resolved_at")
+  routedTo    PartnerType?   @map("routed_to")
+  partnerId   String?        @map("partner_id")
+  partner     Partner?       @relation(fields: [partnerId], references: [id])
+  responderId String?        @map("responder_id")
+  responder   Responder?     @relation(fields: [responderId], references: [id])
+  createdAt   DateTime       @default(now()) @map("created_at")
+  resolvedAt  DateTime?      @map("resolved_at")
   events      CaseEvent[]
+  locations   CaseLocation[]
 
   @@index([status])
   @@index([routedTo])
   @@map("cases")
+}
+
+/// A live GPS breadcrumb for an open case.
+///
+/// While a case is open the SafeZone app posts a fresh fix on a fixed interval
+/// (see the app's `LiveTrackingService`) to `POST /api/me/case/track`, which
+/// appends one row here and copies the latest lat/lng onto the parent `Case`.
+/// The trail lets a duty officer — and the user's trusted contacts — follow the
+/// person *moving* instead of reading a single frozen point from when they first
+/// pressed SOS. A one-shot SOS with no movement simply has one row (or none).
+///
+/// Distinct from [SosEvent]: that is a device-keyed, PostgREST-written ping with
+/// no case attached; this is written through the authenticated `/api/me/*`
+/// surface and belongs to a specific case, which is what both viewers query by.
+model CaseLocation {
+  id        String   @id @default(uuid())
+  caseId    String   @map("case_id")
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  lat       Float
+  lng       Float
+  // Timestamptz for the same reason as everything else here: the user is abroad.
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([caseId, createdAt])
+  @@map("case_locations")
 }
 
 /// An entry on a case timeline (SOS received, forwarded, responder assigned...).
@@ -151,6 +177,43 @@ model SosEvent {
   @@index([deviceId])
   @@index([createdAt])
   @@map("sos_events")
+}
+
+/// A suspected human-trafficking report, modelled on STOP THE TRAFFIK's STOP
+/// APP: anyone — a member of the public on the website, or a SafeZone app user —
+/// can report something they saw, heard or suspect, and it lands in a staff
+/// triage queue.
+///
+/// Deliberately decoupled from [Case]: a trafficking tip is anonymous by
+/// default, needs no verified phone or citizen record, and has its own
+/// lifecycle. Never key it to a real identity unless the reporter opts in via
+/// [reporterContact].
+model TraffikReport {
+  id           String       @id @default(uuid())
+  refNo        String       @unique @map("ref_no") // TIP-YYYY-MMDD-NNN
+  category     String // labour | sexual | domestic | child | forced_marriage | other
+  description  String
+  country      String?
+  city         String?
+  locationText String?      @map("location_text") // free-text place ("near X market")
+  lat          Float?
+  lng          Float?
+  observedAt   DateTime?    @map("observed_at") // when the reporter saw it
+  photoUrls    String[]     @map("photo_urls") // optional evidence (Phase 6b)
+  source       ReportSource @default(PUBLIC_WEB)
+  // Anonymity is the promise. `anonymous` stays true unless the reporter chose
+  // to leave a way to reach them; `reporterContact` is the only identifying
+  // field and is null in the default flow.
+  anonymous       Boolean   @default(true)
+  reporterContact String?   @map("reporter_contact")
+  status       ReportStatus @default(NEW)
+  reviewNote   String?      @map("review_note")
+  reviewedBy   String?      @map("reviewed_by")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("traffik_reports")
 }
 
 /// Console-wide configuration set by staff at runtime (not env vars, which
@@ -209,4 +272,16 @@ enum StaffRole {
   ADMIN // sees every case
   OFFICER // embassy duty officer, sees every case
   PARTNER // sees only cases routed to their partner
+}
+
+enum ReportSource {
+  PUBLIC_WEB // the public website report form
+  MOBILE_APP // the SafeZone app's Report tab
+}
+
+enum ReportStatus {
+  NEW // just arrived, not yet triaged
+  REVIEWING // an officer is looking into it
+  ACTIONED // referred / escalated / acted on
+  DISMISSED // not actionable (spam, insufficient, duplicate)
 }

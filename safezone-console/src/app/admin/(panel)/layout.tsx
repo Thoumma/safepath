@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaff();
-  const newCount = await prisma.case.count({ where: { ...caseScope(staff), status: "NEW" } });
+  const [newCount, newReports] = await Promise.all([
+    prisma.case.count({ where: { ...caseScope(staff), status: "NEW" } }),
+    prisma.traffikReport.count({ where: { status: "NEW" } }),
+  ]);
 
   const scopeLabel =
     staff.role === "PARTNER" && staff.partnerCode
@@ -20,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         staffName={staff.fullName ?? staff.email}
         scopeLabel={scopeLabel}
         newCount={newCount}
+        newReports={newReports}
         isPartner={staff.role === "PARTNER"}
       />
       {/* pb-14 clears the mobile bottom tab bar; it collapses at md. */}

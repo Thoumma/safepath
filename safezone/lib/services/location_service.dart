@@ -10,7 +10,11 @@ class LocationService {
   LocationService._();
   static final LocationService instance = LocationService._();
 
-  Future<LocationResult> getCurrentLocation() async {
+  /// [timeLimit] caps how long a single fix may take before it throws (surfaced
+  /// as an ordinary error result). Left null for the one-shot SOS, where a fix
+  /// is worth waiting for; the live tracker passes one so a hung fix cannot stall
+  /// its interval loop.
+  Future<LocationResult> getCurrentLocation({Duration? timeLimit}) async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return LocationResult(error: 'GPS ປິດຢູ່ — ກະລຸນາເປີດ Location.');
@@ -28,6 +32,7 @@ class LocationService {
     try {
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: timeLimit,
       );
       return LocationResult(position: pos);
     } catch (e) {

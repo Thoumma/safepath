@@ -29,5 +29,5 @@ export async function signIn(_prev: LoginState, formData: FormData): Promise<Log
   }
 
   // Must stay outside any try/catch — redirect() signals by throwing.
-  redirect("/dashboard");
+  redirect("/admin");
 }

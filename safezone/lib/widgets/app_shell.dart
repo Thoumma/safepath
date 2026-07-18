@@ -59,6 +59,11 @@ class AppShell extends StatelessWidget {
             selectedIcon: Icon(Icons.info),
             label: 'ກ່ຽວກັບ',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign),
+            label: 'ລາຍງານ',
+          ),
         ],
       ),
     );

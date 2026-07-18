@@ -42,6 +42,7 @@ export async function GET(req: Request) {
             where: { status: { in: ["NEW", "IN_PROGRESS"] } },
             orderBy: { createdAt: "desc" },
             take: 1,
+            include: { locations: { orderBy: { createdAt: "desc" }, take: 1 } },
           },
         },
       },
@@ -67,6 +68,9 @@ export async function GET(req: Request) {
             city: openCase.city,
             country: openCase.country,
             createdAt: openCase.createdAt,
+            // Latest live fix, so a trusted contact sees the position freshen
+            // as the person moves rather than a point frozen at first SOS.
+            trackedAt: openCase.locations[0]?.createdAt ?? null,
           }
         : null,
     };

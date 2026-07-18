@@ -24,7 +24,40 @@ _Last reviewed: 2026-07-16_
   KYC review offers a "check with ministry" button when configured
   (`lib/passport-verify.ts` stub contract; `match` auto-verifies, `no_match`
   never auto-rejects); unconfigured/unreachable → manual KYC, unchanged.
-- `flutter analyze` clean; 7/7 tests pass.
+- Live GPS tracking (2026-07-18): while an SOS case is open the app streams a
+  fresh fix every 20s (foreground, `lib/services/live_tracking_service.dart`,
+  2-hour cap) to a new authenticated `POST /api/me/case/track`, which appends a
+  `CaseLocation` row and moves the case's latest lat/lng. The console case page
+  shows a live "Tracking trail" + LIVE badge and auto-refreshes every 15s
+  (`components/auto-refresh.tsx`); the app's Guardian tab shows a "ຕິດຕາມສົດ"
+  indicator and live-polls while any guardian is in emergency. Duress-safe: the
+  tracker refuses to start in decoy mode, `AuthService.lock()` stops it, and
+  `_tick` re-checks the decoy/locked gate, so a coerced unlock streams nothing.
+  Needs `npm run db:push` for the new `case_locations` table. Background (screen
+  off / app killed) tracking is a separate follow-up — see P3 #12.
+- Anti-trafficking reporting (2026-07-19): STOP-APP-style suspected-trafficking
+  reports, anonymous by default. New Prisma `TraffikReport` (+ `ReportSource`/
+  `ReportStatus` enums) and a public, unauthenticated `POST /api/report`
+  (honeypot + length caps). Mobile: a 4th tab `ລາຍງານ` (`report_screen` +
+  `report_form_screen`, `ReportService`, `TraffikReport`, `report_content.dart`)
+  posting to the same endpoint (`source: MOBILE_APP`). Console: the whole staff
+  dashboard moved behind `/admin` (route group `admin/(panel)/*`, login at
+  `/admin/login`), middleware inverted to gate only `/admin`; the old analytics
+  `/reports` became `/admin/analytics`; a new staff triage queue lives at
+  `/admin/reports` with a NEW-count badge. Needs `npm run db:push` for the new
+  `traffik_reports` table.
+- Public website (2026-07-19): the console root is now a public site — `(public)`
+  route group with Home (mission + "spot the signs" awareness), About, Contact,
+  and a public Report form. Lao-first bilingual, reuses the console design
+  system; `lib/trafficking-signs.ts` is the shared awareness taxonomy.
+- Mobile UX polish (2026-07-19): first-run `welcome_screen` onboarding (teaches
+  the app + the duress password) before setup; shared `SafeCard` widget; Lao
+  label cleanup (no more stray "Trusted Contact"/"encrypted"); stronger duress
+  explanation on setup + About; clearer contact empty state. Golden set
+  (`design_preview_test`) regenerated to cover the copy changes + welcome/report.
+- Console verified: `npm run build` passes clean (public + `/admin/*` routes, new
+  `/api/report`), tsc + Prisma clean.
+- `flutter analyze` clean; tests pass.
 
 ---
 
@@ -120,6 +153,49 @@ so the panel shows "no image" for everyone.
 Biometric unlock, embassy integration, web/cloud encrypted backup — per the
 build plan §8, all remain roadmap.
 
+### 12. Background live tracking (screen off / app killed) — designed, build next
+**Status:** live tracking (2026-07-18) runs only while the app is open and
+unlocked. When the phone is locked or backgrounded it stops, so a duty officer
+following an open case loses fresh fixes the moment the user pockets the phone.
+- **Why deferred:** needs a native Android **foreground service** + a persistent
+  notification and background-location perms (and iOS background-location modes).
+  The persistent notification is a **decoy-mode tell** — so it must stay off under
+  duress.
+- **Approach (no new package — `geolocator ^12` already installed):** in
+  `LiveTrackingService`, best-effort subscribe to
+  `Geolocator.getPositionStream(locationSettings: …)` with an Android
+  `ForegroundNotificationConfig` (and iOS `AppleSettings.allowBackgroundLocationUpdates`)
+  to keep the process alive; cache the latest fix and keep the existing 20s
+  `Timer.periodic` posting it. Wrap the stream start in try/catch so any failure
+  falls back to today's foreground-only behaviour (no regression). Reuse the
+  existing duress gates (`start()` early-returns in decoy, `lock()` stops it,
+  `_tick` re-checks) so the service + notification never appear under the fake
+  password. End on case-resolve / "I'm safe" / the 2-hour cap.
+- **Manifest/plist:** add `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE`,
+  `FOREGROUND_SERVICE_LOCATION` + declare `GeolocatorLocationService`
+  (`foregroundServiceType="location"`) in `AndroidManifest.xml`; add
+  `NSLocationAlwaysAndWhenInUseUsageDescription` + `UIBackgroundModes=[location]`
+  in `ios/Runner/Info.plist`. Needs on-device verification.
+
+### 13. Report photo evidence (Phase 6b) — designed, build next
+**Status:** trafficking reports (2026-07-19) are text + location only. STOP THE
+TRAFFIK's app centres on photos; the `TraffikReport.photoUrls` column already
+exists (added Phase 1), so **no DB migration** is needed.
+- **Approach — private storage, staff-only signed URLs (STOP APP posture):**
+  new `src/lib/report-storage.ts` builds a **service-role** Supabase client
+  (`SUPABASE_SERVICE_ROLE_KEY` + `NEXT_PUBLIC_SUPABASE_URL`), auto-creates a
+  private `report-photos` bucket, and exposes `uploadPhoto` + `signedUrl`. New
+  `POST /api/report/photo` (multipart, jpeg/png/webp ≤5 MB, returns `{path}`,
+  503 `photos_disabled` when the key is absent) serves both web and app. The web
+  `report-form.tsx` and the mobile `report_form_screen.dart` add an image picker
+  (≤3, `image_picker` already installed), upload on select, and include the paths
+  in the report POST (`TraffikReport.photoUrls`). The staff triage page
+  (`/admin/reports`) renders `signedUrl` thumbnails.
+- **Fail-open:** no service-role key → the photo UI is hidden and reports stay
+  text-only; a failed photo upload is dropped with a snackbar, report still sends.
+- **Setup:** add `SUPABASE_SERVICE_ROLE_KEY` to `safezone-console/.env.local`;
+  the private bucket auto-creates on first upload.
+
 ---
 
 ## Multi-recipient delivery caveat (known limitation, not a bug)
@@ -130,5 +206,6 @@ MVP's composer-based approach; resolved properly by item **#6** (backend).
 ---
 
 ## Suggested order
-P1 is complete (#1–#4, 2026-07-16). Next: #5 edit/primary contact → then P3
-roadmap as scope allows.
+P1 is complete (#1–#4, 2026-07-16). **Next session: #12 background tracking +
+#13 report photos** (both designed above, ready to build). Then #5 edit/primary
+contact → remaining P3 roadmap as scope allows.

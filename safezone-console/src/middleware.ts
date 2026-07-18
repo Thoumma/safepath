@@ -5,16 +5,26 @@ import { NextResponse, type NextRequest } from "next/server";
  *  parameter type. Annotate it or the whole callback degrades to `any`. */
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
-/** Routes that skip the *staff* cookie session.
+/**
+ * Only the `/admin` staff area needs a cookie session. Everything else is
+ * public by design:
+ *  - the public report website (`/`, `/about`, `/contact`, `/report`) — a
+ *    bystander must be able to report trafficking with no account;
+ *  - `/api/report` — the public intake for those reports;
+ *  - `/api/sos` and `/api/me/*` — called by the mobile app, which has no browser
+ *    cookie; it authenticates with a Supabase bearer token carrying a verified
+ *    phone claim (see `lib/app-auth.ts`).
  *
- * `/api/sos` and `/api/me/*` are called by the mobile app, which has no browser
- * cookie — it authenticates with a Supabase bearer token carrying a verified
- * phone claim. They are not unauthenticated; they authenticate differently
- * (see `lib/app-auth.ts`). Redirecting them to /login would break the app.
+ * So we invert the old default-deny: gate `/admin` (except its login page) and
+ * skip the Supabase round-trip entirely for public traffic.
  */
-const PUBLIC = ["/login", "/api/sos", "/api/me"];
+const ADMIN_LOGIN = "/admin/login";
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const inAdmin = path === "/admin" || path.startsWith("/admin/");
+  if (!inAdmin) return NextResponse.next();
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -38,17 +48,16 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC.some((p) => path === p || path.startsWith(p + "/"));
+  const isLogin = path === ADMIN_LOGIN;
 
-  if (!user && !isPublic) {
+  if (!user && !isLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = ADMIN_LOGIN;
     return NextResponse.redirect(url);
   }
-  if (user && path === "/login") {
+  if (user && isLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/admin";
     return NextResponse.redirect(url);
   }
   return response;

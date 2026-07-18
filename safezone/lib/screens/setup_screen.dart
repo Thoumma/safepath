@@ -74,11 +74,17 @@ class _SetupScreenState extends State<SetupScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('ລະຫັດຈິງ ແລະ ລະຫັດປອມ', style: text.titleMedium),
+                      Text('ລະຫັດ 2 ອັນ: ຈິງ ແລະ ປອມ', style: text.titleMedium),
                       const SizedBox(height: 6),
                       Text(
-                        'ລະຫັດຈິງ = ເຂົ້າໃຊ້ປົກກະຕິ. ລະຫັດປອມ = ໃຊ້ເມື່ອຖືກບັງຄັບ: '
-                        'ແອັບຈະສະແດງຕູ້ເປົ່າ ແລະ ສົ່ງສັນຍານ SOS ໃຫ້ Trusted Contact ແບບງຽບໆ.',
+                        'ລະຫັດຈິງ — ໃຊ້ເຂົ້າແອັບຕາມປົກກະຕິ ເຫັນຂໍ້ມູນທັງໝົດຂອງທ່ານ.',
+                        style: text.bodySmall,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'ລະຫັດປອມ — ໃຊ້ເມື່ອຖືກຄົນອື່ນບັງຄັບໃຫ້ເປີດແອັບ. ມັນຈະເປີດຕູ້ເປົ່າ '
+                        '(ຄືກັບບໍ່ມີຫຍັງ) ແລະ ໃນເວລາດຽວກັນ ຈະສົ່ງສັນຍານ SOS ໃຫ້ຄົນໄວ້ໃຈ '
+                        'ແບບງຽບໆ ໂດຍຄົນທີ່ບັງຄັບທ່ານຈະບໍ່ຮູ້ຕົວ.',
                         style: text.bodySmall,
                       ),
                     ],

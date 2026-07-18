@@ -127,7 +127,7 @@ export default async function LogsPage() {
                       <TableCell>
                         {r.caseId ? (
                           <Link
-                            href={`/cases/${r.caseId}`}
+                            href={`/admin/cases/${r.caseId}`}
                             className="font-mono text-xs tabular-nums underline-offset-2 hover:underline"
                           >
                             {r.refNo}

@@ -49,6 +49,7 @@ export async function GET(req: Request) {
   const c = await prisma.case.findFirst({
     where: MINE(caller.phone),
     orderBy: { createdAt: "desc" },
+    include: { locations: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
 
   return NextResponse.json(
@@ -63,6 +64,9 @@ export async function GET(req: Request) {
         city: c.city,
         country: c.country,
         createdAt: c.createdAt,
+        // When the last live fix landed, or null if only the opening SOS point
+        // exists. Lets the app show the tracker as live and time-stamp it.
+        trackedAt: c.locations[0]?.createdAt ?? null,
       },
     },
     { status: 200 }

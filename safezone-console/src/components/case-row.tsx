@@ -21,7 +21,7 @@ export function CaseRow({ c }: { c: CaseListItem }) {
 
   return (
     <Link
-      href={`/cases/${c.id}`}
+      href={`/admin/cases/${c.id}`}
       className={cn(
         "group relative flex items-center gap-3 border border-border bg-card px-3 py-2.5",
         "transition-colors duration-fast hover:border-border-strong hover:bg-muted",

@@ -15,7 +15,7 @@ export const requireStaff = cache(async (): Promise<StaffUser> => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin/login");
 
   let staff = await prisma.staffUser.findUnique({ where: { id: user.id } });
 

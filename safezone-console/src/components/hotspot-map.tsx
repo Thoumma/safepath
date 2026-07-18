@@ -66,7 +66,7 @@ export default function HotspotMap({ hotspots }: { hotspots: Hotspot[] }) {
                       className={`size-2 shrink-0 ${SEVERITY[c.severity as SeverityKey].dot}`}
                     />
                     <a
-                      href={`/cases/${c.id}`}
+                      href={`/admin/cases/${c.id}`}
                       className="font-mono tabular-nums underline-offset-2 hover:underline"
                     >
                       {c.refNo}

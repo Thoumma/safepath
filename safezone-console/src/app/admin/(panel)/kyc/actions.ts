@@ -36,7 +36,7 @@ export async function reviewCitizen(formData: FormData) {
   });
 
   revalidatePath("/kyc");
-  revalidatePath(`/kyc/${citizen.id}`);
+  revalidatePath(`/admin/kyc/${citizen.id}`);
   revalidatePath("/logs");
   revalidatePath("/citizens");
 }
@@ -82,8 +82,8 @@ export async function checkWithMinistry(formData: FormData) {
   });
 
   revalidatePath("/kyc");
-  revalidatePath(`/kyc/${citizenId}`);
+  revalidatePath(`/admin/kyc/${citizenId}`);
   revalidatePath("/logs");
   revalidatePath("/citizens");
-  redirect(`/kyc/${citizenId}?api=${verdict.status}`);
+  redirect(`/admin/kyc/${citizenId}?api=${verdict.status}`);
 }

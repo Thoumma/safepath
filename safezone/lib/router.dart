@@ -7,10 +7,13 @@ import 'screens/home_screen.dart';
 import 'screens/passport_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/contact_screen.dart';
+import 'screens/report_screen.dart';
+import 'screens/report_form_screen.dart';
 import 'screens/sos_screen.dart';
 import 'screens/setup_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/otp_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'widgets/app_shell.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -25,9 +28,12 @@ final GoRouter appRouter = GoRouter(
     const authRoutes = {'/setup', '/lock', '/otp'};
     final goingToAuth = authRoutes.contains(loc);
 
-    // No account yet → must set up.
+    // No account yet → welcome, then setup. Both are reachable pre-setup; the
+    // welcome screen is the first thing a brand-new user sees and hands off to
+    // /setup. Any other location is bounced to /welcome.
     if (!auth.isSetup) {
-      return loc == '/setup' ? null : '/setup';
+      const preSetup = {'/welcome', '/setup'};
+      return preSetup.contains(loc) ? null : '/welcome';
     }
 
     // Account exists but locked → only auth routes allowed (lock/otp).
@@ -59,6 +65,11 @@ final GoRouter appRouter = GoRouter(
           GoRoute(
               path: '/about', builder: (context, state) => const AboutScreen()),
         ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/report',
+              builder: (context, state) => const ReportScreen()),
+        ]),
       ],
     ),
 
@@ -83,6 +94,14 @@ final GoRouter appRouter = GoRouter(
         parentNavigatorKey: _rootKey,
         path: '/profile',
         builder: (context, state) => const ProfileScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/report/new',
+        builder: (context, state) => const ReportFormScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/welcome',
+        builder: (context, state) => const WelcomeScreen()),
     GoRoute(
         parentNavigatorKey: _rootKey,
         path: '/setup',

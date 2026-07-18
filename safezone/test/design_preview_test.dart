@@ -14,8 +14,10 @@ import 'package:safezone/screens/lock_screen.dart';
 import 'package:safezone/screens/otp_screen.dart';
 import 'package:safezone/screens/passport_screen.dart';
 import 'package:safezone/screens/profile_screen.dart';
+import 'package:safezone/screens/report_screen.dart';
 import 'package:safezone/screens/setup_screen.dart';
 import 'package:safezone/screens/sos_screen.dart';
+import 'package:safezone/screens/welcome_screen.dart';
 import 'package:safezone/services/database_service.dart';
 import 'package:safezone/theme.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -103,6 +105,7 @@ void main() {
   });
 
   final screens = <String, Widget>{
+    'welcome': const WelcomeScreen(),
     'home': const HomeScreen(),
     // Home inside the real bottom-bar chrome. This is the same widget tree the
     // shell builds (Scaffold > body: HomeScreen, bottomNavigationBar), so it is
@@ -112,6 +115,7 @@ void main() {
     'guardian': const GuardianScreen(),
     'profile': const ProfileScreen(),
     'about': const AboutScreen(),
+    'report': const ReportScreen(),
     'sos': const SosScreen(),
     'passport': const PassportScreen(),
     'contact': const ContactScreen(),

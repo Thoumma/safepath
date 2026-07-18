@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Siren, Users, BarChart3, Shield, ShieldCheck, ScrollText, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Siren, Users, Flag, BarChart3, Shield, ShieldCheck, ScrollText, Settings, LogOut } from "lucide-react";
 import { NAV } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const ICONS = { LayoutDashboard, Siren, Users, BarChart3, ShieldCheck, ScrollText, Settings } as const;
+const ICONS = { LayoutDashboard, Siren, Users, Flag, BarChart3, ShieldCheck, ScrollText, Settings } as const;
 
 /**
  * The left rule of the grid.
@@ -21,25 +21,34 @@ export function AppSidebar({
   staffName,
   scopeLabel,
   newCount,
+  newReports = 0,
   isPartner,
 }: {
   staffName: string;
   scopeLabel: string;
   newCount: number;
+  newReports?: number;
   isPartner: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // The unread count to badge a given nav item with: open SOS cases on the
+  // inbox, un-triaged tips on reports.
+  const badgeFor = (href: string) =>
+    href === "/admin/inbox" ? newCount : href === "/admin/reports" ? newReports : 0;
+
   async function signOut() {
     await createClient().auth.signOut();
-    router.push("/login");
+    router.push("/admin/login");
     router.refresh();
   }
 
   const items = NAV.filter((item) => !(item.staffOnly && isPartner)).map((item) => {
     const Icon = ICONS[item.icon];
-    const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+    // `/admin` (the overview) is only active on an exact match — otherwise it
+    // would light up on every page under /admin. The rest match by prefix.
+    const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
     return { ...item, Icon, active };
   });
 
@@ -90,9 +99,9 @@ export function AppSidebar({
                       {en}
                     </span>
                   </span>
-                  {href === "/inbox" && newCount > 0 && (
+                  {badgeFor(href) > 0 && (
                     <span className="ml-auto grid min-w-5 shrink-0 place-items-center rounded-sm bg-critical px-1 py-0.5 font-mono text-2xs font-bold tabular-nums text-critical-foreground">
-                      {newCount}
+                      {badgeFor(href)}
                     </span>
                   )}
                 </Link>
@@ -141,9 +150,9 @@ export function AppSidebar({
                 <span lang="lo" className="font-lao text-2xs leading-none">
                   {lo}
                 </span>
-                {href === "/inbox" && newCount > 0 && (
+                {badgeFor(href) > 0 && (
                   <span className="absolute right-[22%] top-2 grid min-w-4 place-items-center rounded-sm bg-critical px-1 font-mono text-[10px] font-bold tabular-nums text-critical-foreground">
-                    {newCount}
+                    {badgeFor(href)}
                   </span>
                 )}
               </Link>

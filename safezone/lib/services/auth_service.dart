@@ -7,6 +7,7 @@ import '../utils/password_hasher.dart';
 import 'contact_store.dart';
 import 'database_service.dart';
 import 'device_identity.dart';
+import 'live_tracking_service.dart';
 import 'otp_service.dart';
 import 'sos_service.dart';
 
@@ -196,6 +197,13 @@ class AuthService extends ChangeNotifier {
   }
 
   void lock() {
+    // Stop live tracking the instant the phone is locked. Without this, a
+    // tracker started in the real session would keep POSTing the user's live
+    // GPS across a lock — and, worse, across a subsequent *fake*-password
+    // unlock, streaming a coerced victim's position to the console. Locking is
+    // the one choke point every path to the decoy passes through, so it is the
+    // right place to guarantee the stream is dead before any new login.
+    LiveTrackingService.instance.stop();
     _isUnlocked = false;
     _mode = AuthMode.real;
     notifyListeners();

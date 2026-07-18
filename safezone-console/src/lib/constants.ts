@@ -72,6 +72,17 @@ export const PARTNER = {
   SAFEPATH: { lo: "SafePath", en: "SafePath" },
 } as const;
 
+/** Trafficking-report triage states. Same loudness rule: NEW demands the eye,
+ *  a closed ACTIONED/DISMISSED report is quiet. */
+export const REPORT_STATUS = {
+  NEW: { lo: "ໃໝ່", en: "New", badge: "bg-critical text-critical-foreground" },
+  REVIEWING: { lo: "ກຳລັງກວດ", en: "Reviewing", badge: "bg-high text-high-foreground" },
+  ACTIONED: { lo: "ດຳເນີນການແລ້ວ", en: "Actioned", badge: "border border-success text-success-ink bg-transparent" },
+  DISMISSED: { lo: "ຍົກເລີກ", en: "Dismissed", badge: "bg-muted text-muted-foreground border border-border" },
+} as const;
+
+export type ReportStatusKey = keyof typeof REPORT_STATUS;
+
 /** KYC verdicts follow the same loudness rule: the state demanding staff
  *  attention (PENDING) is the loud one; a settled VERIFIED is quiet. */
 export const KYC = {
@@ -96,21 +107,22 @@ export type NavItem = {
   href: string;
   lo: string;
   en: string;
-  icon: "LayoutDashboard" | "Siren" | "Users" | "BarChart3" | "ShieldCheck" | "ScrollText" | "Settings";
+  icon: "LayoutDashboard" | "Siren" | "Users" | "Flag" | "BarChart3" | "ShieldCheck" | "ScrollText" | "Settings";
   /** Embassy-only surface: hidden from PARTNER staff. */
   staffOnly?: boolean;
 };
 
 export const NAV: readonly NavItem[] = [
-  { href: "/dashboard", lo: "ພາບລວມ", en: "Dashboard", icon: "LayoutDashboard" },
-  { href: "/inbox", lo: "ສາຍ SOS", en: "SOS Inbox", icon: "Siren" },
-  { href: "/citizens", lo: "ພົນລະເມືອງ", en: "Citizens", icon: "Users" },
-  { href: "/kyc", lo: "ຢືນຢັນ ຕົວຕົນ", en: "KYC", icon: "ShieldCheck", staffOnly: true },
-  { href: "/logs", lo: "ບັນທຶກ ລະບົບ", en: "Activity Log", icon: "ScrollText" },
-  { href: "/reports", lo: "ລາຍງານ", en: "Reports", icon: "BarChart3" },
+  { href: "/admin", lo: "ພາບລວມ", en: "Dashboard", icon: "LayoutDashboard" },
+  { href: "/admin/inbox", lo: "ສາຍ SOS", en: "SOS Inbox", icon: "Siren" },
+  { href: "/admin/reports", lo: "ລາຍງານ ການຄ້າ", en: "Trafficking tips", icon: "Flag" },
+  { href: "/admin/citizens", lo: "ພົນລະເມືອງ", en: "Citizens", icon: "Users" },
+  { href: "/admin/kyc", lo: "ຢືນຢັນ ຕົວຕົນ", en: "KYC", icon: "ShieldCheck", staffOnly: true },
+  { href: "/admin/logs", lo: "ບັນທຶກ ລະບົບ", en: "Activity Log", icon: "ScrollText" },
+  { href: "/admin/analytics", lo: "ສະຖິຕິ", en: "Analytics", icon: "BarChart3" },
   // Not staffOnly: every role gets account self-service; the page itself
   // hides the system-integration section from PARTNER accounts.
-  { href: "/settings", lo: "ຕັ້ງຄ່າ", en: "Settings", icon: "Settings" },
+  { href: "/admin/settings", lo: "ຕັ້ງຄ່າ", en: "Settings", icon: "Settings" },
 ];
 
 /** Categorical chart colors. Drawn from the semantic set only — a chart may

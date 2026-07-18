@@ -46,6 +46,11 @@ class GuardianCase {
   final String? country;
   final DateTime createdAt;
 
+  /// When the latest live GPS fix landed, or null if only the opening SOS point
+  /// exists. `lat`/`lng` already track the newest position; this timestamps it
+  /// so the screen can show "updated X ago" and a live indicator.
+  final DateTime? trackedAt;
+
   const GuardianCase({
     required this.refNo,
     required this.severity,
@@ -56,9 +61,17 @@ class GuardianCase {
     this.city,
     this.country,
     required this.createdAt,
+    this.trackedAt,
   });
 
   bool get hasLocation => lat != null && lng != null;
+
+  /// True while the position is being refreshed — an open case whose last fix
+  /// is recent. Beyond that the phone is off, out of signal, or done tracking,
+  /// and a "live" label would claim more than we know.
+  bool get isLiveTracking =>
+      trackedAt != null &&
+      DateTime.now().difference(trackedAt!) < const Duration(minutes: 2);
 
   String get mapsUrl => 'https://maps.google.com/?q=$lat,$lng';
 
@@ -72,5 +85,8 @@ class GuardianCase {
         city: j['city'] as String?,
         country: j['country'] as String?,
         createdAt: DateTime.parse(j['createdAt'] as String).toLocal(),
+        trackedAt: j['trackedAt'] == null
+            ? null
+            : DateTime.parse(j['trackedAt'] as String).toLocal(),
       );
 }

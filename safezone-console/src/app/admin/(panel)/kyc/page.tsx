@@ -82,7 +82,7 @@ export default async function KycPage() {
                     <TableRow key={c.id}>
                       <TableCell>
                         <Link
-                          href={`/kyc/${c.id}`}
+                          href={`/admin/kyc/${c.id}`}
                           aria-label={`ກວດສອບ ${c.fullName}`}
                           className="block w-fit"
                         >
@@ -102,7 +102,7 @@ export default async function KycPage() {
                       </TableCell>
                       <TableCell>
                         <Link
-                          href={`/kyc/${c.id}`}
+                          href={`/admin/kyc/${c.id}`}
                           lang="lo"
                           className="font-lao font-semibold leading-lao underline-offset-4 hover:underline"
                         >

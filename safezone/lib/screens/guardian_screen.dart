@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,10 +31,22 @@ class _GuardianScreenState extends State<GuardianScreen> {
   GuardianResult? _result;
   bool _loading = true;
 
+  /// Polls while at least one guardian is in an active emergency, so their
+  /// live GPS trail freshens on this screen without a manual pull. Silent (no
+  /// spinner) and stopped the moment nobody is in trouble — an idle Guardian
+  /// list must not sit there hitting the network.
+  Timer? _liveTimer;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -43,6 +57,32 @@ class _GuardianScreenState extends State<GuardianScreen> {
         _result = r;
         _loading = false;
       });
+      _syncLivePolling();
+    }
+  }
+
+  /// Refetches without the loading spinner — used by the live poll so the list
+  /// updates in place instead of flashing a full-screen loader every tick.
+  Future<void> _reloadQuietly() async {
+    final r = await GuardianService.instance.load();
+    if (mounted) {
+      setState(() => _result = r);
+      _syncLivePolling();
+    }
+  }
+
+  /// Runs the poll only while someone is in emergency.
+  void _syncLivePolling() {
+    final anyEmergency =
+        _result?.guardians.any((g) => g.inEmergency) ?? false;
+    if (anyEmergency) {
+      _liveTimer ??= Timer.periodic(
+        const Duration(seconds: 15),
+        (_) => _reloadQuietly(),
+      );
+    } else {
+      _liveTimer?.cancel();
+      _liveTimer = null;
     }
   }
 
@@ -186,6 +226,33 @@ class _GuardianScreenState extends State<GuardianScreen> {
               'ກົດ SOS ເມື່ອ ${_formatTime(g.activeCase!.createdAt)}',
               style: text.bodyMedium,
             ),
+            // Live GPS trail. When the app is streaming fresh fixes, say so and
+            // stamp the last one — "ເບິ່ງແຜນທີ່" below always opens the newest
+            // position because lat/lng track it. When the stream has gone quiet
+            // (phone off / no signal), drop the live chip but still show when
+            // we last heard, so a trusted contact knows how stale the pin is.
+            if (g.activeCase!.trackedAt != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  if (g.activeCase!.isLiveTracking) ...[
+                    Icon(Icons.my_location, size: 15, color: tokens.criticalInk),
+                    const SizedBox(width: 6),
+                    Text(
+                      'ຕິດຕາມສົດ',
+                      style: text.labelMedium!.copyWith(color: tokens.criticalInk),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: Text(
+                      'ອັບເດດຕຳແໜ່ງ ${_formatTime(g.activeCase!.trackedAt!)}',
+                      style: text.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (g.activeCase!.city != null || g.activeCase!.country != null) ...[
               const SizedBox(height: 4),
               Text(

@@ -12,7 +12,7 @@ export async function updateAccountName(formData: FormData) {
   const staff = await requireStaff();
 
   const fullName = String(formData.get("fullName") ?? "").trim();
-  if (!fullName) redirect("/settings?account=empty");
+  if (!fullName) redirect("/admin/settings?account=empty");
 
   await prisma.staffUser.update({ where: { id: staff.id }, data: { fullName } });
   await prisma.auditLog.create({
@@ -26,7 +26,7 @@ export async function updateAccountName(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/logs");
-  redirect("/settings?account=saved");
+  redirect("/admin/settings?account=saved");
 }
 
 /** Change the caller's own password (Supabase Auth). Self-service: any role.
@@ -37,12 +37,12 @@ export async function changePassword(formData: FormData) {
 
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  if (password.length < 8) redirect("/settings?pw=short");
-  if (password !== confirm) redirect("/settings?pw=mismatch");
+  if (password.length < 8) redirect("/admin/settings?pw=short");
+  if (password !== confirm) redirect("/admin/settings?pw=mismatch");
 
   const supabase = createClient();
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) redirect("/settings?pw=error");
+  if (error) redirect("/admin/settings?pw=error");
 
   await prisma.auditLog.create({
     data: {
@@ -53,7 +53,7 @@ export async function changePassword(formData: FormData) {
   });
 
   revalidatePath("/logs");
-  redirect("/settings?pw=saved");
+  redirect("/admin/settings?pw=saved");
 }
 
 /** Save the ministry passport-API settings. Same authority line as KYC:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme.dart';
+import '../services/live_tracking_service.dart';
 import '../services/sos_server.dart';
 import '../services/sos_service.dart';
 import '../widgets/sos_button.dart';
@@ -67,6 +68,13 @@ class _SosScreenState extends State<SosScreen> {
     });
     try {
       final res = await SosService.instance.triggerSos();
+      // A case now exists on the console, so begin streaming live GPS to it.
+      // Only when the server actually accepted the alert — an offline/queued
+      // send has no case yet, and tracking it would 404 every tick until the
+      // outbox flushes. Home resumes tracking once that case appears.
+      if (res.serverStatus == ServerStatus.sent) {
+        LiveTrackingService.instance.start();
+      }
       if (mounted) setState(() => _result = res);
     } on SosException catch (e) {
       if (mounted) setState(() => _error = e.message);

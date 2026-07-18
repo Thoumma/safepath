@@ -7,6 +7,7 @@ import '../services/contact_store.dart';
 import '../services/profile_sync.dart';
 import '../theme.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/safe_card.dart';
 
 class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
@@ -64,7 +65,7 @@ class _ContactScreenState extends State<ContactScreen> {
     unawaited(ProfileSync.instance.syncContacts());
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ເພີ່ມ Trusted Contact ແລ້ວ')),
+        const SnackBar(content: Text('ເພີ່ມຄົນໄວ້ໃຈແລ້ວ')),
       );
     }
   }
@@ -82,7 +83,7 @@ class _ContactScreenState extends State<ContactScreen> {
     final text = context.text;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trusted Contacts')),
+      appBar: AppBar(title: const Text('ຄົນໄວ້ໃຈ')),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -111,11 +112,25 @@ class _ContactScreenState extends State<ContactScreen> {
 
                 // Existing contacts list
                 if (_contacts.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'ຍັງບໍ່ມີ Trusted Contact',
-                      style: text.bodyMedium,
+                  SafeCard(
+                    child: Row(
+                      children: [
+                        Icon(Icons.group_outlined, color: colors.outline),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('ຍັງບໍ່ມີຄົນໄວ້ໃຈ', style: text.labelLarge),
+                              const SizedBox(height: 2),
+                              Text(
+                                'ເພີ່ມຄົນທີ່ຈະໄດ້ຮັບ SMS ເມື່ອທ່ານກົດ SOS',
+                                style: text.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 else

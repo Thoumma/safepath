@@ -30,4 +30,12 @@ class ConsoleConfig {
 
   /// GET = the user's own open case; POST = "I'm safe", resolve it.
   static Uri get caseEndpoint => Uri.parse('$baseUrl/api/me/case');
+
+  /// POST a live GPS breadcrumb while an SOS case is open. Returns `{open}` —
+  /// `open:false` means there is no case to track and the app should stop.
+  static Uri get caseTrackEndpoint => Uri.parse('$baseUrl/api/me/case/track');
+
+  /// POST a suspected-trafficking report. Public and unauthenticated — no token
+  /// needed, so it works even before the user has verified a phone.
+  static Uri get reportEndpoint => Uri.parse('$baseUrl/api/report');
 }

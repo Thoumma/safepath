@@ -60,7 +60,7 @@ export default async function KycReviewPage({
 
       <div className="space-y-5 p-6">
         <Link
-          href="/kyc"
+          href="/admin/kyc"
           className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-fast hover:text-foreground"
         >
           <ArrowLeft aria-hidden className="size-4" />
@@ -156,7 +156,7 @@ export default async function KycReviewPage({
                   ) : (
                     <p lang="lo" className="font-lao text-sm leading-lao text-muted-foreground">
                       API ຂອງ ກະຊວງ ຍັງ ບໍ່ໄດ້ ຕັ້ງຄ່າ — ກວດ ດ້ວຍມື ຕາມ ຂັ້ນຕອນ ຂ້າງລຸ່ມ.{" "}
-                      <Link href="/settings" className="underline hover:text-foreground">
+                      <Link href="/admin/settings" className="underline hover:text-foreground">
                         ຕັ້ງຄ່າ
                       </Link>
                     </p>

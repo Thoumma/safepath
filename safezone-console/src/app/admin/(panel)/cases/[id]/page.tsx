@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Annotation } from "@/components/bilingual";
 import { SeverityBadge, StatusBadge } from "@/components/tags";
 import { CaseActions } from "@/components/case-actions";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { requireStaff, caseScope } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { agoLao, initials, cn } from "@/lib/utils";
@@ -26,9 +27,20 @@ export default async function CasePage({ params }: { params: { id: string } }) {
       partner: true,
       responder: true,
       events: { orderBy: { createdAt: "asc" } },
+      locations: { orderBy: { createdAt: "desc" }, take: 30 },
     },
   });
   if (!c) notFound();
+
+  const isOpen = c.status !== "RESOLVED";
+  const latestPing = c.locations[0] ?? null;
+  // "Live" means an open case whose last fix landed inside two tracking
+  // intervals — otherwise the phone is off, out of signal, or done tracking,
+  // and a pulsing LIVE badge would overstate what we actually know.
+  const lastFixMs = latestPing ? Date.now() - latestPing.createdAt.getTime() : Infinity;
+  const isLive = isOpen && lastFixMs < 60_000;
+  // The freshest position we hold, and when it was taken.
+  const lastLocatedAt = latestPing?.createdAt ?? c.createdAt;
 
   const responders = c.partnerId
     ? await prisma.responder.findMany({ where: { partnerId: c.partnerId }, select: { id: true, name: true } })
@@ -40,9 +52,13 @@ export default async function CasePage({ params }: { params: { id: string } }) {
     <>
       <PageHeader lo="ໜ້າ ຊ່ວຍ ຈັດການ ເຄສ" en="Case helper" sub="ເຫັນ ທຸກຢ່າງ ໃນ ໜ້າ ດຽວ — ຊ່ວຍ ໄດ້ ໄວ" />
 
+      {/* Follow an open case's moving GPS without a manual reload. Stops once
+          the case is resolved. */}
+      <AutoRefresh active={isOpen} seconds={15} />
+
       <div className="space-y-5 p-6">
         <Link
-          href="/inbox"
+          href="/admin/inbox"
           className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-fast hover:text-foreground"
         >
           <ArrowLeft aria-hidden className="size-4" />
@@ -83,7 +99,15 @@ export default async function CasePage({ params }: { params: { id: string } }) {
           {/* LEFT: location + connections */}
           <div className="space-y-4">
             <Card>
-              <PanelTitle lo="ຕຳແໜ່ງ ປັດຈຸບັນ" en="Live location" />
+              <div className="flex items-center justify-between">
+                <PanelTitle lo="ຕຳແໜ່ງ ປັດຈຸບັນ" en="Live location" />
+                {isLive && (
+                  <span className="mr-4 inline-flex items-center gap-1.5 rounded-sm bg-critical px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-critical-foreground">
+                    <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-critical-foreground" />
+                    Live
+                  </span>
+                )}
+              </div>
               <CardContent className="space-y-1">
                 {c.lat != null && c.lng != null ? (
                   <iframe
@@ -102,10 +126,48 @@ export default async function CasePage({ params }: { params: { id: string } }) {
                 <div className="pt-2">
                   <Row k="GPS" v={c.lat != null ? `${c.lat}, ${c.lng}` : "—"} mono />
                   <Row k="ສະຖານທີ່" v={[c.city, c.country].filter(Boolean).join(", ") || "—"} />
-                  <Row k="ອັບເດດ ຫຼ້າສຸດ" v={`${agoLao(c.createdAt)} ຜ່ານມາ`} />
+                  <Row k="ອັບເດດ ຫຼ້າສຸດ" v={`${agoLao(lastLocatedAt)} ຜ່ານມາ`} />
                 </div>
               </CardContent>
             </Card>
+
+            {/* The moving trail. One row per fix the app posted while the case
+                was open — newest first, each a link to that exact point. Absent
+                entirely for a one-shot SOS that never moved, so it never adds
+                empty chrome. */}
+            {c.locations.length > 0 && (
+              <Card>
+                <PanelTitle lo="ເສັ້ນທາງ ຕິດຕາມ ສົດ" en="Tracking trail" />
+                <CardContent>
+                  <ol className="space-y-px">
+                    {c.locations.map((p, i) => (
+                      <li
+                        key={p.id}
+                        className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-0"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            aria-hidden
+                            className={cn("size-[7px] shrink-0", i === 0 && isLive ? "bg-critical" : "bg-success")}
+                          />
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=17/${p.lat}/${p.lng}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-xs tabular-nums text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                          >
+                            {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
+                          </a>
+                        </div>
+                        <span className="shrink-0 font-mono text-2xs tabular-nums text-muted-foreground">
+                          {agoLao(p.createdAt)} ຜ່ານມາ
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <PanelTitle lo="ການ ເຊື່ອມຕໍ່ ຂອງ ເຄສ" en="Everything linked" />

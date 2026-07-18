@@ -7,6 +7,7 @@ import '../models/guardian.dart';
 import '../services/auth_service.dart';
 import '../services/case_service.dart';
 import '../services/contact_store.dart';
+import '../services/live_tracking_service.dart';
 import '../services/passport_store.dart';
 import '../services/profile_store.dart';
 import '../services/sos_outbox.dart';
@@ -73,6 +74,19 @@ class _HomeScreenState extends State<HomeScreen> {
     // not wait on it.
     final open = await CaseService.instance.loadOpenCase();
     if (mounted) setState(() => _openCase = open);
+
+    // Keep tracking in step with the case. Resume it whenever the app is
+    // foregrounded with a case still open (after a relaunch, or returning from
+    // another screen); stop it if the case is gone — e.g. a duty officer
+    // resolved it from the console, so there is no "I'm safe" tap to stop it
+    // here. `start()`/`stop()` are idempotent, so this is safe every refresh.
+    // (The decoy gate inside `start()`, and the early return above, keep it off
+    // under duress.)
+    if (open != null) {
+      LiveTrackingService.instance.start();
+    } else {
+      LiveTrackingService.instance.stop();
+    }
   }
 
   /// Stands the user's own alarm down.
@@ -107,6 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => _resolving = true);
     final ok = await CaseService.instance.markSafe();
+    // The case is closing — stop volunteering GPS. The tracker would stop on
+    // its own within one interval (the server returns open:false), but ending
+    // it now means no stray fix lands after the user has said they are safe.
+    if (ok) LiveTrackingService.instance.stop();
     if (!mounted) return;
     setState(() => _resolving = false);
 
@@ -335,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const Divider(),
                             StatusTile(
-                              label: 'ພາສປອດ (encrypted)',
+                              label: 'ພາສປອດ (ເຂົ້າລະຫັດ)',
                               icon: Icons.badge_outlined,
                               isConfigured: _hasPassport,
                               onTap: () async {
@@ -345,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const Divider(),
                             StatusTile(
-                              label: 'Trusted Contact',
+                              label: 'ຄົນໄວ້ໃຈ',
                               icon: Icons.contact_phone_outlined,
                               isConfigured: _hasContact,
                               onTap: () async {
