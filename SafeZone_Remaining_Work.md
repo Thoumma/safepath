@@ -91,6 +91,22 @@ _Last reviewed: 2026-07-19_
   + cached-fix freshness. `flutter analyze` + tests clean. **Remaining:** on-device
   verification of background survival, the permission dialogs, and duress teardown
   (see the manual matrix — cannot be exercised without a physical device).
+- Donations (2026-07-19 — #14a + #14b): staff configure donations in
+  `/admin/settings` (embassy-only, audit-logged, `system_settings` rows, mirroring
+  the passport-API pattern) — enable toggle, Lao+en title/blurb, donation URL,
+  bank details, and an optional custom QR upload. New `lib/settings.ts` donation
+  config (`getDonationConfig`/`donationReady`, `DONATION_PRESET_QRS`,
+  `DONATION_DEFAULTS`) + `lib/donation-storage.ts` (**public** `donation-assets`
+  bucket, `uploadQr`/`deleteQr`/`qrPublicUrl`, service-role-gated upload).
+  Public `/donate` page (Trust-Teal, Lao-first): a "what your donation funds"
+  section + a 4-card QR grid, or the staff's custom QR when uploaded, plus
+  optional online-link and bank-transfer cards. Nav + footer show a Donate link
+  only when enabled (public layout reads the setting server-side and passes
+  `showDonate`). **Default-ON with bundled preset QRs:** four BCEL One amount QRs
+  (10k/20k/50k/1M ₭) ship under `public/donation/` so the page works out of the
+  box; only an explicit disable hides everything (fail-open per plan, but the
+  default is *shown* — chosen so the provided QR images are live immediately).
+  Console tsc + `next build` clean.
 
 ---
 
@@ -120,19 +136,19 @@ matrix for #12 (background tracking) and a live run of the #13 photo flow.
   - Settings / account management.
 - **Output:** fix anything that fails; note results here.
 
-### B. Donation — admin configuration (#14a)
-Add a donation config to the staff settings, **mirroring the existing MOFA
-passport-API settings pattern** (`system_settings` table, audit-logged,
-`/admin/settings`). Suggested fields: enable toggle, title + blurb (Lao + en),
-donation link/URL, bank account details, and/or a QR image (reuse the private
-Supabase Storage helper from #13 if an image upload is wanted). Server action
-updates + audit-logs exactly like the passport settings.
+### B. Donation — admin configuration (#14a) ✅ done (2026-07-19)
+Done — see the completion note in the "Already complete" section. `/admin/settings`
+Donation card (embassy-only, audit-logged) with enable toggle, Lao+en title/blurb,
+donation URL, bank details, optional custom QR upload; `saveDonationSettings`
+mirrors the passport-API action.
 
-### C. Donation — public website (#14b)
-Add a public **Donate** page/section that renders the configured donation info
-(link / bank / QR), Lao-first, in the Trust-Teal design system; add a nav +
-footer link. **Fail-open:** if donation is disabled/unconfigured in settings, hide
-the donate UI entirely. Read the settings server-side (like other `/admin` reads).
+### C. Donation — public website (#14b) ✅ done (2026-07-19)
+Done — see the completion note. Public `/donate` page (Trust-Teal, Lao-first):
+"what donations fund" + 4-card preset-QR grid (or custom QR) + optional link/bank
+cards; nav/footer Donate link gated on the setting via the public layout.
+**Note:** default-ON with the four provided BCEL One preset QRs bundled under
+`public/donation/`, so donation is live immediately; only an explicit disable
+hides it. If you'd rather it default OFF until staff configure it, say so.
 
 ---
 

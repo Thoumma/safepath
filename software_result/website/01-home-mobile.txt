@@ -1,0 +1,3 @@
+[EN] Home page — the public landing page of SafeZone, an anti-trafficking website for Lao travellers. It shows the headline “People are not goods to be bought and sold”, key statistics on modern slavery, the warning signs of trafficking to watch for, the types of exploitation that can be reported, and buttons leading to the anonymous report form. Mobile view (390×844).
+
+[LO] ໜ້າຫຼັກ — ໜ້າທຳອິດຂອງເວັບໄຊ SafeZone ຕ້ານການຄ້າມະນຸດ ສຳລັບຄົນລາວທີ່ເດີນທາງໄປຕ່າງປະເທດ. ສະແດງຫົວຂໍ້ “ຄົນເຮົາ ບໍ່ແມ່ນ ສິນຄ້າ ທີ່ຊື້ຂາຍໄດ້”, ສະຖິຕິສຳຄັນຂອງການຄ້າມະນຸດ, ສັນຍານເຕືອນທີ່ຄວນສັງເກດ, ປະເພດການຂູດຮີດທີ່ສາມາດລາຍງານໄດ້ ແລະ ປຸ່ມໄປຫາແບບຟອມລາຍງານແບບບໍ່ເປີດເຜີຍຊື່. ມຸມມອງມືຖື (390×844).

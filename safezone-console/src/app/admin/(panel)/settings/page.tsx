@@ -1,13 +1,15 @@
-import { CircleCheck, CircleDashed, KeyRound, UserRound, LockKeyhole } from "lucide-react";
+import { CircleCheck, CircleDashed, KeyRound, UserRound, LockKeyhole, QrCode } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, PanelTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { requireStaff } from "@/lib/auth";
-import { getPassportApiConfig, passportApiReady } from "@/lib/settings";
+import { getDonationConfig, getPassportApiConfig, donationReady, passportApiReady } from "@/lib/settings";
+import { donationStorageEnabled, qrPublicUrl } from "@/lib/donation-storage";
 import { cn } from "@/lib/utils";
-import { changePassword, savePassportApiSettings, updateAccountName } from "./actions";
+import { changePassword, saveDonationSettings, savePassportApiSettings, updateAccountName } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,11 @@ const PW_MSG = {
   short: { lo: "ລະຫັດຜ່ານ ຕ້ອງ ຢ່າງໜ້ອຍ 8 ຕົວອັກສອນ", cls: "border-critical text-critical-ink" },
   mismatch: { lo: "ລະຫັດຜ່ານ ທັງສອງ ບໍ່ ກົງກັນ", cls: "border-critical text-critical-ink" },
   error: { lo: "ປ່ຽນ ລະຫັດຜ່ານ ບໍ່ ສຳເລັດ — ລອງ ໃໝ່ ອີກຄັ້ງ", cls: "border-critical text-critical-ink" },
+} as const;
+
+const DONATION_MSG = {
+  saved: { lo: "ບັນທຶກ ການຕັ້ງຄ່າ ບໍລິຈາກ ແລ້ວ", cls: "border-success text-success-ink" },
+  qrfail: { lo: "ບັນທຶກແລ້ວ ແຕ່ ອັບໂຫຼດ QR ບໍ່ສຳເລັດ — QR ເກົ່າ ຄືເກົ່າ", cls: "border-critical text-critical-ink" },
 } as const;
 
 function FormBanner({ msg }: { msg: { lo: string; cls: string } }) {
@@ -42,13 +49,18 @@ function FormBanner({ msg }: { msg: { lo: string; cls: string } }) {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: { account?: string; pw?: string };
+  searchParams: { account?: string; pw?: string; donation?: string };
 }) {
   const staff = await requireStaff();
   const canConfigureSystem = staff.role !== "PARTNER";
 
   const cfg = canConfigureSystem ? await getPassportApiConfig() : null;
   const ready = cfg ? passportApiReady(cfg) : false;
+
+  const donationCfg = canConfigureSystem ? await getDonationConfig() : null;
+  const donationOn = donationCfg ? donationReady(donationCfg) : false;
+  const currentQrUrl =
+    donationCfg && donationCfg.qrPath ? qrPublicUrl(donationCfg.qrPath) : "";
 
   const accountMsg =
     searchParams.account && searchParams.account in ACCOUNT_MSG
@@ -57,6 +69,10 @@ export default async function SettingsPage({
   const pwMsg =
     searchParams.pw && searchParams.pw in PW_MSG
       ? PW_MSG[searchParams.pw as keyof typeof PW_MSG]
+      : null;
+  const donationMsg =
+    searchParams.donation && searchParams.donation in DONATION_MSG
+      ? DONATION_MSG[searchParams.donation as keyof typeof DONATION_MSG]
       : null;
 
   return (
@@ -278,6 +294,197 @@ export default async function SettingsPage({
             <p lang="lo" className="border-t border-border pt-3 font-lao text-xs leading-lao text-muted-foreground">
               ກະຊວງ ຍັງ ບໍ່ທັນ ເປີດ ບໍລິການ ນີ້ — ຟອມ ນີ້ ກຽມໄວ້ ລ່ວງໜ້າ. ເມື່ອ ໄດ້ຮັບ key ແລ້ວ
               ວາງ ໃສ່ ບ່ອນນີ້ ແລ້ວ ເປີດໃຊ້ ໄດ້ເລີຍ; ຖ້າ API ໃຊ້ບໍ່ໄດ້ ໜ້າ KYC ຈະ ກັບໄປ ກວດ ດ້ວຍມື ເອງ ອັດຕະໂນມັດ.
+            </p>
+          </CardContent>
+        </Card>
+        )}
+
+        {/* ── Donations — embassy staff only ───────────────────────────── */}
+        {canConfigureSystem && donationCfg && (
+        <Card>
+          <PanelTitle
+            lo="ການ ບໍລິຈາກ — ໜ້າ ເວັບ ສາທາລະນະ"
+            en="Donations · public website"
+          />
+          <CardContent className="space-y-5">
+            {donationMsg && <FormBanner msg={donationMsg} />}
+
+            {/* Live state — what the public site is doing right now. */}
+            <div className="flex items-start gap-2.5 border border-border bg-muted p-3">
+              {donationOn ? (
+                <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-success-ink" />
+              ) : (
+                <CircleDashed aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              )}
+              <div className="min-w-0">
+                <p lang="lo" className="font-lao text-sm font-semibold leading-lao">
+                  {donationOn
+                    ? "ເປີດໃຊ້ແລ້ວ — ໜ້າ /donate ແລະ ລິ້ງ ໃນ ເມນູ ຈະ ສະແດງ"
+                    : "ປິດ ຢູ່ — ໜ້າ ບໍລິຈາກ ຖືກ ເຊື່ອງ ທັງໝົດ"}
+                </p>
+                <p lang="en" className="annotation">
+                  {donationOn
+                    ? "Enabled — /donate and the nav/footer links are visible"
+                    : "Off — the donate page and links are hidden"}
+                </p>
+              </div>
+            </div>
+
+            <form action={saveDonationSettings} className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <input
+                  id="donation-enabled"
+                  name="enabled"
+                  type="checkbox"
+                  defaultChecked={donationCfg.enabled}
+                  className="size-4 accent-primary"
+                />
+                <Label htmlFor="donation-enabled">
+                  <span lang="lo" className="font-lao leading-lao">
+                    ເປີດໃຊ້ ການບໍລິຈາກ ໃນ ໜ້າ ເວັບ
+                  </span>
+                </Label>
+              </div>
+
+              {/* Title */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="donation-titleLo">
+                    <span lang="lo" className="font-lao leading-lao">ຫົວຂໍ້ (ລາວ)</span>
+                  </Label>
+                  <Input
+                    id="donation-titleLo"
+                    name="titleLo"
+                    lang="lo"
+                    defaultValue={donationCfg.titleLo}
+                    className="font-lao"
+                    placeholder="ຮ່ວມບໍລິຈາກ ສະໜັບສະໜູນ SafeZone"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="donation-titleEn">
+                    <span lang="en">Title (English)</span>
+                  </Label>
+                  <Input
+                    id="donation-titleEn"
+                    name="titleEn"
+                    defaultValue={donationCfg.titleEn}
+                    placeholder="Support SafeZone"
+                  />
+                </div>
+              </div>
+
+              {/* Blurb */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="donation-blurbLo">
+                    <span lang="lo" className="font-lao leading-lao">ຄຳ ອະທິບາຍ (ລາວ)</span>
+                  </Label>
+                  <Textarea
+                    id="donation-blurbLo"
+                    name="blurbLo"
+                    lang="lo"
+                    rows={3}
+                    defaultValue={donationCfg.blurbLo}
+                    className="font-lao"
+                    maxLength={600}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="donation-blurbEn">
+                    <span lang="en">Description (English)</span>
+                  </Label>
+                  <Textarea
+                    id="donation-blurbEn"
+                    name="blurbEn"
+                    rows={3}
+                    defaultValue={donationCfg.blurbEn}
+                    maxLength={600}
+                  />
+                </div>
+              </div>
+
+              {/* Donation link */}
+              <div className="space-y-1.5">
+                <Label htmlFor="donation-url">
+                  <span lang="lo" className="font-lao leading-lao">ລິ້ງ ບໍລິຈາກ (ຖ້າ ມີ)</span>
+                </Label>
+                <Input
+                  id="donation-url"
+                  name="url"
+                  type="url"
+                  defaultValue={donationCfg.url}
+                  placeholder="https://..."
+                  className="font-mono"
+                />
+              </div>
+
+              {/* Bank details */}
+              <div className="space-y-1.5">
+                <Label htmlFor="donation-bank">
+                  <span lang="lo" className="font-lao leading-lao">ລາຍລະອຽດ ບັນຊີ ທະນາຄານ (ຖ້າ ມີ)</span>
+                </Label>
+                <Textarea
+                  id="donation-bank"
+                  name="bank"
+                  lang="lo"
+                  rows={3}
+                  defaultValue={donationCfg.bank}
+                  className="font-lao"
+                  maxLength={600}
+                  placeholder="ຊື່ ບັນຊີ / ເລກ ບັນຊີ / ທະນາຄານ"
+                />
+              </div>
+
+              {/* QR image */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <QrCode aria-hidden className="size-4 text-muted-foreground" />
+                  <Label htmlFor="donation-qr">
+                    <span lang="lo" className="font-lao leading-lao">ຮູບ QR (ຖ້າ ຢາກ ໃຊ້ ຮູບ ຂອງ ຕົນເອງ)</span>
+                  </Label>
+                </div>
+                {currentQrUrl ? (
+                  <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={currentQrUrl}
+                      alt="QR"
+                      className="size-20 rounded-sm border border-border object-contain"
+                    />
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input name="removeQr" type="checkbox" className="size-3.5 accent-primary" />
+                      <span lang="lo" className="font-lao leading-lao">ລຶບ QR ທີ່ບັນທຶກໄວ້</span>
+                    </label>
+                  </div>
+                ) : (
+                  <p lang="lo" className="font-lao text-xs leading-lao text-muted-foreground">
+                    ຍັງ ບໍ່ ໄດ້ ອັບໂຫຼດ — ໜ້າ ບໍລິຈາກ ຈະ ໃຊ້ QR ຕາມ ຈຳນວນ ທີ່ ມາ ກັບ ລະບົບ (10,000 / 20,000 / 50,000 / 1,000,000 ກີບ).
+                  </p>
+                )}
+                {donationStorageEnabled() ? (
+                  <Input
+                    id="donation-qr"
+                    name="qr"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="text-sm"
+                  />
+                ) : (
+                  <p lang="lo" className="font-lao text-2xs leading-lao text-muted-foreground">
+                    (ການ ອັບໂຫຼດ ຕ້ອງ ຕັ້ງ SUPABASE_SERVICE_ROLE_KEY ກ່ອນ)
+                  </p>
+                )}
+              </div>
+
+              <Button type="submit">
+                <span lang="lo" className="font-lao">ບັນທຶກ</span>
+              </Button>
+            </form>
+
+            <p lang="lo" className="border-t border-border pt-3 font-lao text-xs leading-lao text-muted-foreground">
+              ຄ່າ ວ່າງ ຈະ ໃຊ້ ຄ່າ ເລີ່ມຕົ້ນ ຂອງ ລະບົບ. ຖ້າ ບໍ່ ອັບໂຫຼດ QR ເອງ ໜ້າ ບໍລິຈາກ ຈະ ສະແດງ QR
+              ຕາມ ຈຳນວນ ທີ່ ມາ ກັບ ລະບົບ. ປິດ ຕົວເລືອກ ດ້ານເທິງ ເພື່ອ ເຊື່ອງ ໜ້າ ບໍລິຈາກ ທັງໝົດ.
             </p>
           </CardContent>
         </Card>

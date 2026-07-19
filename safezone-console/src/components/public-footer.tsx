@@ -6,7 +6,7 @@ import { Shield, Phone } from "lucide-react";
  * the emergency numbers, which must be reachable from every page with no
  * account and no scrolling hunt.
  */
-export function PublicFooter() {
+export function PublicFooter({ showDonate = false }: { showDonate?: boolean }) {
   return (
     <footer className="mt-auto border-t border-border bg-card">
       <div className="mx-auto max-w-page px-4 py-10 sm:px-6 lg:px-8">
@@ -31,6 +31,9 @@ export function PublicFooter() {
               <li><Link href="/about" className="hover:text-foreground">ກ່ຽວກັບ</Link></li>
               <li><Link href="/contact" className="hover:text-foreground">ຕິດຕໍ່</Link></li>
               <li><Link href="/report" className="hover:text-foreground">ລາຍງານ</Link></li>
+              {showDonate && (
+                <li><Link href="/donate" className="hover:text-foreground">ບໍລິຈາກ</Link></li>
+              )}
             </ul>
           </div>
 

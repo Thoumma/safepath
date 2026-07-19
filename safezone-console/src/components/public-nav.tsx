@@ -14,16 +14,19 @@ import { cn } from "@/lib/utils";
  *
  * Lao-primary with a small English annotation, matching the product voice.
  */
-const LINKS = [
+const BASE_LINKS = [
   { href: "/", lo: "ໜ້າຫຼັກ", en: "Home" },
   { href: "/data", lo: "ຂໍ້ມູນ", en: "The data" },
   { href: "/about", lo: "ກ່ຽວກັບ", en: "About" },
   { href: "/contact", lo: "ຕິດຕໍ່", en: "Contact" },
 ];
 
-export function PublicNav() {
+const DONATE_LINK = { href: "/donate", lo: "ບໍລິຈາກ", en: "Donate" };
+
+export function PublicNav({ showDonate = false }: { showDonate?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const LINKS = showDonate ? [...BASE_LINKS, DONATE_LINK] : BASE_LINKS;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);

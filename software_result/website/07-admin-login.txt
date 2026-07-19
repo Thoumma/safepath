@@ -1,0 +1,3 @@
+[EN] Staff sign-in page — the login screen of the admin Response Console. Duty officers, embassy staff and partner organisations sign in with an email + password account (Supabase Auth). The public website never requires an account; only the /admin area is protected. Desktop view (1440×900).
+
+[LO] ໜ້າເຂົ້າສູ່ລະບົບພະນັກງານ — ໜ້າ Login ຂອງສູນຕອບໂຕ້ (ສ່ວນ Admin). ເຈົ້າໜ້າທີ່ເວນຍາມ, ພະນັກງານສະຖານທູດ ແລະ ອົງກອນຄູ່ຮ່ວມງານ ເຂົ້າລະບົບດ້ວຍອີເມວ + ລະຫັດຜ່ານ (Supabase Auth). ເວັບໄຊສາທາລະນະບໍ່ຕ້ອງໃຊ້ບັນຊີ; ມີແຕ່ສ່ວນ /admin ເທົ່ານັ້ນທີ່ຖືກປົກປ້ອງ. ມຸມມອງຄອມພິວເຕີ (1440×900).

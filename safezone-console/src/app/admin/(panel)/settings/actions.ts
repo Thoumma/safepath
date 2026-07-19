@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { PASSPORT_API_KEYS, setSetting } from "@/lib/settings";
+import { DONATION_KEYS, PASSPORT_API_KEYS, setSetting } from "@/lib/settings";
+import { deleteQr, donationStorageEnabled, uploadQr } from "@/lib/donation-storage";
 
 /** Update the caller's own display name. Self-service: any role. */
 export async function updateAccountName(formData: FormData) {
@@ -92,4 +93,85 @@ export async function savePassportApiSettings(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/kyc");
+}
+
+/** Allowed QR image types + size, mirroring the report-photo ingress. */
+const QR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const QR_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+/** Save the public donation config. Same authority line as the passport API —
+ *  an embassy decision, so PARTNER accounts have no say. None of it is secret;
+ *  it is meant to be shown publicly, so every field round-trips normally. The
+ *  QR image is optional: a new upload replaces (and deletes) the old one, and
+ *  the "remove QR" checkbox clears it. Fully audit-logged. */
+export async function saveDonationSettings(formData: FormData) {
+  const staff = await requireStaff();
+  if (staff.role === "PARTNER") return;
+
+  const enabled = formData.get("enabled") === "on";
+  const titleLo = String(formData.get("titleLo") ?? "").trim();
+  const titleEn = String(formData.get("titleEn") ?? "").trim();
+  const blurbLo = String(formData.get("blurbLo") ?? "").trim();
+  const blurbEn = String(formData.get("blurbEn") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
+  const bank = String(formData.get("bank") ?? "").trim();
+  const removeQr = formData.get("removeQr") === "on";
+  const qrFile = formData.get("qr");
+
+  const by = staff.email;
+
+  // Resolve the QR path: keep, replace, or clear. Only touch storage when it is
+  // configured; a broken upload never blocks saving the text fields.
+  const prevQrPath = String(
+    (await prisma.systemSetting.findUnique({ where: { key: DONATION_KEYS.qrPath } }))?.value ?? ""
+  );
+  let qrPath = prevQrPath;
+  let qrChange = "unchanged";
+
+  if (removeQr) {
+    if (prevQrPath) await deleteQr(prevQrPath);
+    qrPath = "";
+    qrChange = "cleared";
+  } else if (
+    qrFile instanceof File &&
+    qrFile.size > 0 &&
+    donationStorageEnabled() &&
+    QR_TYPES.has(qrFile.type) &&
+    qrFile.size <= QR_MAX_BYTES
+  ) {
+    try {
+      const bytes = Buffer.from(await qrFile.arrayBuffer());
+      const { path } = await uploadQr(bytes, qrFile.type);
+      if (prevQrPath) await deleteQr(prevQrPath);
+      qrPath = path;
+      qrChange = "updated";
+    } catch {
+      // Upload failed — keep the previous QR, save the rest.
+      qrChange = "upload_failed";
+    }
+  }
+
+  await setSetting(DONATION_KEYS.enabled, enabled ? "true" : "false", by);
+  await setSetting(DONATION_KEYS.titleLo, titleLo, by);
+  await setSetting(DONATION_KEYS.titleEn, titleEn, by);
+  await setSetting(DONATION_KEYS.blurbLo, blurbLo, by);
+  await setSetting(DONATION_KEYS.blurbEn, blurbEn, by);
+  await setSetting(DONATION_KEYS.url, url, by);
+  await setSetting(DONATION_KEYS.bank, bank, by);
+  await setSetting(DONATION_KEYS.qrPath, qrPath, by);
+
+  await prisma.auditLog.create({
+    data: {
+      actor: staff.fullName ?? staff.email,
+      action: "settings_update",
+      target: "donation",
+      detail: `enabled=${enabled} url=${url || "—"} bank=${bank ? "set" : "—"} qr=${qrChange}`,
+    },
+  });
+
+  revalidatePath("/settings");
+  // Refresh the whole public tree so the nav/footer donate links and the
+  // /donate page reflect the new config immediately.
+  revalidatePath("/", "layout");
+  redirect(`/admin/settings?donation=${qrChange === "upload_failed" ? "qrfail" : "saved"}`);
 }

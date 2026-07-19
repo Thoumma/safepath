@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
+import { getDonationConfig, donationReady } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "SafeZone — ຕ້ານການຄ້າມະນຸດ / Stop trafficking",
@@ -8,20 +9,33 @@ export const metadata: Metadata = {
     "Report suspected human trafficking, anonymously and securely. Protecting Lao travellers abroad.",
 };
 
+// Read donation settings per request so the nav/footer links appear or hide the
+// moment staff toggle donations — and so `npm run build` never needs the DB.
+export const dynamic = "force-dynamic";
+
 /**
- * The public website shell — Home / About / Contact / Report. Deliberately
- * separate from the `/admin` staff console: no sidebar, no auth. It inherits the
- * root layout's fonts + theme script, and adds the public header and footer.
+ * The public website shell — Home / About / Contact / Report / Donate.
+ * Deliberately separate from the `/admin` staff console: no sidebar, no auth. It
+ * inherits the root layout's fonts + theme script, and adds the public header
+ * and footer. The Donate link is shown only when donations are enabled (item
+ * #14b, fail-open: a DB hiccup hides it rather than linking to a 404).
  */
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  let showDonate = false;
+  try {
+    showDonate = donationReady(await getDonationConfig());
+  } catch {
+    showDonate = false;
+  }
+
   return (
     // `public-surface` rescopes the design tokens to the Trust-Teal (Blue Heart)
     // public palette — see globals.css. The staff `/admin` console keeps the
     // Swiss navy system untouched.
     <div className="public-surface  flex min-h-screen flex-col bg-background">
-      <PublicNav />
+      <PublicNav showDonate={showDonate} />
       <main className="flex-1">{children}</main>
-      <PublicFooter />
+      <PublicFooter showDonate={showDonate} />
     </div>
   );
 }

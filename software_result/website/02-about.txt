@@ -1,0 +1,3 @@
+[EN] About page — explains what SafeZone is and how every report is handled: anonymous by default, kept confidential, turned into insight, and shared responsibly with the right authorities. It also introduces the SafeZone mobile app for Lao travellers (SOS button with GPS, encrypted passport vault, in-app reporting). Desktop view (1440×900).
+
+[LO] ໜ້າກ່ຽວກັບ — ອະທິບາຍວ່າ SafeZone ແມ່ນຫຍັງ ແລະ ລາຍງານຂອງທ່ານຖືກຈັດການແນວໃດ: ບໍ່ຕ້ອງເປີດເຜີຍຊື່, ເກັບເປັນຄວາມລັບ, ນຳມາວິເຄາະ ແລະ ສົ່ງໃຫ້ຜູ້ຮັບຜິດຊອບຢ່າງເໝາະສົມ. ພ້ອມແນະນຳແອັບ SafeZone ສຳລັບນັກເດີນທາງລາວ (ປຸ່ມ SOS ສົ່ງຕຳແໜ່ງ GPS, ຕູ້ເກັບໜັງສືຜ່ານແດນເຂົ້າລະຫັດ, ລາຍງານໃນແອັບ). ມຸມມອງຄອມພິວເຕີ (1440×900).
