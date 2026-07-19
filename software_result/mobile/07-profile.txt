@@ -1,0 +1,3 @@
+[EN] Profile screen — identity the embassy needs to act on an SOS: full name, passport number and phone number, with a send-verification-code button. Deliberately a prompt, not a gate: the app and SOS-over-SMS stay fully usable without it. Shown filled with test data. Android emulator view (1440×3040).
+
+[LO] ໜ້າຂໍ້ມູນຂອງທ່ານ — ຂໍ້ມູນທີ່ສະຖານທູດຕ້ອງການເມື່ອກົດ SOS: ຊື່ ແລະ ນາມສະກຸນ, ເລກພາສປອດ ແລະ ເບີໂທ ພ້ອມປຸ່ມ ສົ່ງລະຫັດຢືນຢັນ. ເປັນພຽງການແນະນຳ ບໍ່ແມ່ນການບັງຄັບ — ແອັບ ແລະ SOS ທາງ SMS ຍັງໃຊ້ໄດ້ເຕັມທີ່ໂດຍບໍ່ຕື່ມກໍໄດ້. ຮູບນີ້ຕື່ມຂໍ້ມູນທົດສອບແລ້ວ. ມຸມມອງໂທລະສັບ (1440×3040).

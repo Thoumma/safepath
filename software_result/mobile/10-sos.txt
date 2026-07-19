@@ -1,0 +1,3 @@
+[EN] SOS screen — the full-screen emergency page (rendered over the app shell so it cannot be left via a tab) with the confirmation dialog: Send SOS? The app will send your GPS position to your helpers — with cancel and a red Send-SOS button. Android emulator view (1440×3040).
+
+[LO] ໜ້າ SOS — ໜ້າສຸກເສີນເຕັມຈໍ (ສະແດງທັບແຖບລຸ່ມ ເພື່ອບໍ່ໃຫ້ອອກໄປແທັບອື່ນໄດ້) ພ້ອມກ່ອງຢືນຢັນ: ສັ່ງສັນຍານ SOS? ແອັບຈະສົ່ງຕຳແໜ່ງ GPS ຂອງທ່ານໄປຫາຜູ້ຊ່ວຍເຫຼືອ — ມີປຸ່ມຍົກເລີກ ແລະ ປຸ່ມສີແດງ ສັ່ງ SOS. ມຸມມອງໂທລະສັບ (1440×3040).

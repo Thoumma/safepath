@@ -1,0 +1,3 @@
+[EN] Profile verification failure — tapping send-verification-code fails with Unsupported phone provider: the Supabase project has no SMS provider configured, so the phone-OTP cannot be delivered. Because of this the profile is never saved, the SOS server channel reports no-profile and the Guardian tab stays gated. Recorded as a functional finding on 2026-07-19. Android emulator view (1440×3040).
+
+[LO] ການຢືນຢັນເບີໂທລົ້ມເຫຼວ — ກົດ ສົ່ງລະຫັດຢືນຢັນ ແລ້ວຂຶ້ນ Unsupported phone provider: ໂປຣເຈັກ Supabase ຍັງບໍ່ໄດ້ຕັ້ງຄ່າຜູ້ໃຫ້ບໍລິການ SMS ຈຶ່ງສົ່ງ OTP ບໍ່ໄດ້. ຜົນຄື ໂປຣໄຟລ໌ບໍ່ຖືກບັນທຶກ, ຊ່ອງທາງເຊີບເວີຂອງ SOS ລາຍງານວ່າຍັງບໍ່ມີຂໍ້ມູນ ແລະ ແທັບຜູ້ໄວ້ໃຈຍັງຖືກລັອກ. ບັນທຶກເປັນບັນຫາທີ່ພົບ ວັນທີ 19/07/2026. ມຸມມອງໂທລະສັບ (1440×3040).

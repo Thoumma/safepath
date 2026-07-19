@@ -1,0 +1,3 @@
+[EN] About tab — explains what the app does (encrypted passport copy, SOS with GPS over SMS and to the response console), the privacy model (AES-256 encryption, key kept in the device keystore, SMS works with no internet), and how the fake/duress password behaves. Android emulator view (1440×3040).
+
+[LO] ແທັບກ່ຽວກັບ — ອະທິບາຍວ່າແອັບນີ້ເຮັດຫຍັງ (ເກັບສຳເນົາພາສປອດແບບເຂົ້າລະຫັດ, ສົ່ງ SOS ພ້ອມ GPS ທາງ SMS ແລະ ຫາສະຖານທູດ), ຄວາມເປັນສ່ວນຕົວ (ເຂົ້າລະຫັດ AES-256, ກະແຈເກັບໃນ keystore ຂອງເຄື່ອງ, SMS ໃຊ້ໄດ້ໂດຍບໍ່ມີອິນເຕີເນັດ) ແລະ ການເຮັດວຽກຂອງລະຫັດປອມ (ສຸກເສີນ). ມຸມມອງໂທລະສັບ (1440×3040).

@@ -1,0 +1,3 @@
+[EN] Report form — submit a trafficking report: category chips (forced labour, sexual exploitation, domestic servitude, child trafficking, forced marriage, other/unsure), a free-text what-happened field (5000 chars), optional location, a toggle to attach the current GPS position, and up to 3 confidential photos. Android emulator view (1440×3040).
+
+[LO] ແບບຟອມລາຍງານ — ສົ່ງລາຍງານການຄ້າມະນຸດ: ເລືອກປະເພດ (ແຮງງານບັງຄັບ, ການຄ້າປະເວນີ, ຮັບໃຊ້ໃນເຮືອນ, ການຄ້າເດັກ, ການແຕ່ງງານບັງຄັບ, ອື່ນໆ/ບໍ່ແມ່ໃຈ), ຂຽນເລົ່າເຫດການ (ສູງສຸດ 5000 ຕົວອັກສອນ), ສະຖານທີ່ (ຖ້າຮູ້), ປຸ່ມແນບຕຳແໜ່ງ GPS ປັດຈຸບັນ ແລະ ຮູບສູງສຸດ 3 ຮູບ (ເປັນຄວາມລັບ). ມຸມມອງໂທລະສັບ (1440×3040).

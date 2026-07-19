@@ -1,0 +1,3 @@
+[EN] Lock screen — the app locked (via the padlock icon on Home or on relaunch). A single password field: the real password opens the real vault, the fake/duress password opens the decoy vault and silently fires an SOS, and a wrong password counts toward the login throttle. The lockout check runs before hash verification so it cannot be used to tell the three cases apart. Android emulator view (1440×3040).
+
+[LO] ໜ້າລັອກ — ແອັບຖືກລັອກ (ຜ່ານໄອຄອນລັອກໃນໜ້າຫຼັກ ຫຼື ເມື່ອເປີດແອັບໃໝ່). ມີຊ່ອງລະຫັດດຽວ: ລະຫັດຈິງເປີດຕູ້ຈິງ, ລະຫັດປອມເປີດຕູ້ເປົ່າ ແລະ ສົ່ງ SOS ແບບງຽບໆ, ລະຫັດຜິດນັບເຂົ້າການຈຳກັດຄວາມພະຍາຍາມ. ການກວດຈຳກັດແລ່ນກ່ອນການກວດ hash ເພື່ອບໍ່ໃຫ້ໃຊ້ແຍກ 3 ກໍລະນີອອກຈາກກັນໄດ້. ມຸມມອງໂທລະສັບ (1440×3040).

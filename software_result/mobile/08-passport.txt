@@ -1,0 +1,3 @@
+[EN] Passport vault — after importing a (test) passport image from the gallery. The toast confirms the image was AES-256-encrypted and saved; the decrypted preview lives only in memory. Buttons: retake photo, pick from gallery, and share a copy of the passport (a separate, manual action — never part of the SOS flow). Android emulator view (1440×3040).
+
+[LO] ຕູ້ເຊຟພາສປອດ — ຫຼັງນຳເຂົ້າຮູບພາສປອດ (ທົດສອບ) ຈາກຄັງຮູບ. ຂໍ້ຄວາມຢືນຢັນວ່າຮູບຖືກເຂົ້າລະຫັດ AES-256 ແລະ ບັນທຶກແລ້ວ; ຮູບທີ່ເຫັນເປັນພຽງ preview ໃນໜ່ວຍຄວາມຈຳ. ປຸ່ມ: ຖ່າຍຮູບໃໝ່, ເລືອກຈາກຄັງຮູບ, ແລະ ສົ່ງສຳເນົາພາສປອດ (ເປັນການກະທຳແຍກຕ່າງຫາກ — ບໍ່ຢູ່ໃນຂັ້ນຕອນ SOS). ມຸມມອງໂທລະສັບ (1440×3040).

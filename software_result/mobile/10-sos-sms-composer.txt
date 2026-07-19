@@ -1,0 +1,3 @@
+[EN] SOS SMS composer — the OS messaging app opened by the SOS with the message prefilled to the trusted contact (+856 20 99 998 888): SafeZone EMERGENCY. My position: https://maps.google.com/?q=... please help. The user must tap send themselves — the app never claims the SMS was sent, only that the composer was opened. Android emulator view (1440×3040).
+
+[LO] ແອັບ SMS ທີ່ SOS ເປີດ — ຂໍ້ຄວາມຖືກຕື່ມໃສ່ລ່ວງໜ້າ ຫາຄົນໄວ້ໃຈ (+856 20 99 998 888): SafeZone EMERGENCY. ຕຳແໜ່ງຂອງຂ້ອຍ: https://maps.google.com/?q=... ກະລຸນາຊ່ວຍ. ຜູ້ໃຊ້ຕ້ອງກົດສົ່ງເອງ — ແອັບບໍ່ອ້າງວ່າ SMS ຖືກສົ່ງແລ້ວ ພຽງແຕ່ວ່າເປີດແອັບ SMS ໃຫ້ແລ້ວ. ມຸມມອງໂທລະສັບ (1440×3040).

@@ -136,6 +136,37 @@ matrix for #12 (background tracking) and a live run of the #13 photo flow.
   - Settings / account management.
 - **Output:** fix anything that fails; note results here.
 
+**Results (2026-07-19, Android emulator, fresh install, console + Supabase wired
+via `10.0.2.2:3000`; screenshots in `software_result/mobile/01…15`):**
+- ✅ Welcome → setup (real + fake password) → home. Setup-status card updates
+  live (passport/contacts ticks).
+- ✅ Lock / real-password unlock. ✅ Lockout: 5 failures → red countdown
+  (`15-lockout.png`), login blocked until it expires, then real password works.
+- ✅ **Duress login**: decoy vault correct — passport/contact ticks empty,
+  profile prompt hidden — and the silent SOS fired (GPS indicator + SMS
+  composer). Confirmed known limitation #6: the composer opening makes the
+  "silent" alert visible (`13-duress-decoy.png`).
+- ✅ **SOS**: confirm dialog → location permission → result screen; SMS channel
+  launched Google Messages with the prefilled EMERGENCY text + maps link to the
+  trusted contact (`10-sos-*.png`).
+- ⚠️ **SOS server channel never reached the console**: profile verification
+  fails with Supabase **"Unsupported phone provider"** (no SMS provider
+  configured in the Supabase project), so no profile is ever saved →
+  `ServerStatus.noProfile` → `/api/sos` is skipped and the Guardian tab stays
+  gated on verification (`14-profile-verify-error.png`). Needs either an SMS
+  provider in Supabase or a dev bypass to test the console intake end-to-end.
+- ✅ **Passport vault**: gallery pick → "ບັນທຶກພາສປອດແບບ encrypted ແລ້ວ", preview
+  renders, share button present (`08-passport.png`). Camera/MRZ-autofill path
+  not exercised (synthetic image via picker; no camera on emulator).
+- ✅ Trusted contact add (`11-contact.png`). ✅ Report form renders with
+  categories/description/location/GPS toggle/photos (`09-report-form.png`) —
+  submit not exercised.
+- UX nit: the home "ຕື່ມຂໍ້ມູນຂອງທ່ານ" card only navigates via its chevron
+  `IconButton`; the rest of the card is not tappable.
+- Not covered (needs real device / SMS provider): new-device OTP approval, live
+  tracking + #12 background matrix, offline `SosOutbox` queue/flush, report
+  submit → `/admin/reports`, share temp-file cleanup.
+
 ### B. Donation — admin configuration (#14a) ✅ done (2026-07-19)
 Done — see the completion note in the "Already complete" section. `/admin/settings`
 Donation card (embassy-only, audit-logged) with enable toggle, Lao+en title/blurb,

@@ -1,0 +1,3 @@
+[EN] SOS result screen — position sent, with a per-channel breakdown: green tick SMS sent to Bounmy Keo (the composer was launched), an amber line profile not filled in yet — the embassy does not know (the server channel was skipped because no verified profile exists), and the GPS position as a Google Maps link. Android emulator view (1440×3040).
+
+[LO] ໜ້າຜົນ SOS — ສົ່ງຕຳແໜ່ງແລ້ວ ພ້ອມຜົນແຍກຕາມຊ່ອງທາງ: ✓ ສົ່ງ SMS ຫາ Bounmy Keo (ເປີດແອັບ SMS ແລ້ວ), ແຖວສີສົ້ມ ຍັງບໍ່ໄດ້ຕື່ມຂໍ້ມູນຂອງທ່ານ — ສະຖານທູດຍັງບໍ່ຮູ້ (ຂ້າມຊ່ອງທາງເຊີບເວີ ເພາະຍັງບໍ່ມີໂປຣໄຟລ໌ທີ່ຢືນຢັນແລ້ວ) ແລະ ພິກັດ GPS ເປັນລິ້ງ Google Maps. ມຸມມອງໂທລະສັບ (1440×3040).

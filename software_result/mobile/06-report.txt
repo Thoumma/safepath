@@ -1,0 +1,3 @@
+[EN] Report tab — confidential trafficking reporting. We help, no conditions intro, an emergency banner with call 191 / hotline 1300, and a checklist of warning signs (movement controlled, documents taken, forced work, big debts, unpaid wages, no contact with family). The button at the bottom opens the report form. Android emulator view (1440×3040).
+
+[LO] ແທັບລາຍງານ — ລາຍງານການຄ້າມະນຸດແບບເປັນຄວາມລັບ. ມີຂໍ້ຄວາມ ຄົນເຮົາບໍ່ແມ່ນສິນຄ້າ, ແຖບສຸກເສີນ ໂທ 191 ຫຼື ສາຍດ່ວນ 1300, ແລະ ລາຍການສັນຍານເຕືອນ (ຖືກຄວບຄຸມ, ຖືກຢຶດເອກະສານ, ຖືກບັງຄັບເຮັດວຽກ, ໜີ້ສິນກ້ອນໃຫຍ່, ບໍ່ໄດ້ຮັບຄ່າຈ້າງ, ຕິດຕໍ່ຄອບຄົວບໍ່ໄດ້). ປຸ່ມລຸ່ມສຸດເປີດແບບຟອມລາຍງານ. ມຸມມອງໂທລະສັບ (1440×3040).

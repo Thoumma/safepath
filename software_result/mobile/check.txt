@@ -1,0 +1,3 @@
+[EN] Real-vault check — logging in with the real password after the lockout countdown expired: the home screen returns with the real data (the setup checklist shows the stored encrypted passport again), confirming the decoy and the real vault are cleanly separated. Android emulator view (1440×3040).
+
+[LO] ກວດຕູ້ຈິງ — ເຂົ້າລະບົບດ້ວຍລະຫັດຈິງ ຫຼັງນັບຖອຍຫຼັງຄົບ: ໜ້າຫຼັກກັບມາພ້ອມຂໍ້ມູນຈິງ (ລາຍການສະຖານະສະແດງພາສປອດທີ່ເຂົ້າລະຫັດໄວ້ຄືເກົ່າ) ຢືນຢັນວ່າຕູ້ເປົ່າ ແລະ ຕູ້ຈິງ ແຍກອອກຈາກກັນຢ່າງຖືກຕ້ອງ. ມຸມມອງໂທລະສັບ (1440×3040).

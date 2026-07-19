@@ -1,0 +1,3 @@
+[EN] Guardian tab — the identity-guardian feature is gated behind phone verification: confirm your phone number first, with a button that leads to the profile screen. Once verified, this tab shows live-tracking status while an SOS case is open. Android emulator view (1440×3040).
+
+[LO] ແທັບຜູ້ໄວ້ໃຈ — ໜ້ານີ້ຖືກລັອກໄວ້ຈົນກວ່າຈະຢືນຢັນເບີໂທ: ຢືນຢັນເບີໂທຂອງທ່ານກ່ອນ ພ້ອມປຸ່ມໄປໜ້າຂໍ້ມູນຂອງທ່ານ. ເມື່ອຢືນຢັນແລ້ວ ແທັບນີ້ຈະສະແດງສະຖານະການຕິດຕາມສົດ ໃນເວລາມີເຄສ SOS ເປີດຢູ່. ມຸມມອງໂທລະສັບ (1440×3040).

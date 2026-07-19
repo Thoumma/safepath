@@ -1,0 +1,3 @@
+[EN] Trusted contacts screen — explains that every contact in this list gets an SMS with the GPS position when SOS is pressed. Shows the contact Bounmy Keo +8562099998888 just added (with delete button) and the add-new-contact form: name, phone (E.164), optional email. Contact data is kept in secure storage, not SQLite. Android emulator view (1440×3040).
+
+[LO] ໜ້າຄົນໄວ້ໃຈ — ອະທິບາຍວ່າທຸກຄົນໃນລາຍຊື່ນີ້ຈະໄດ້ຮັບ SMS ພ້ອມພິກັດ GPS ເມື່ອກົດ SOS. ສະແດງລາຍຊື່ Bounmy Keo +8562099998888 ທີ່ຫາກໍເພີ່ມ (ພ້ອມປຸ່ມລຶບ) ແລະ ແບບຟອມເພີ່ມຄົນໃໝ່: ຊື່, ເບີໂທ (E.164), ອີເມວ (ບໍ່ບັງຄັບ). ຂໍ້ມູນເກັບໃນບ່ອນເກັບຂໍ້ມູນປອດໄພ ບໍ່ແມ່ນ SQLite. ມຸມມອງໂທລະສັບ (1440×3040).

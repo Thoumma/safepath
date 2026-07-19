@@ -1,0 +1,3 @@
+[EN] Login lockout — after 5 consecutive wrong passwords the lock screen shows too-many-wrong-passwords with a countdown (try again in 0:28). The cooldown starts at 30 seconds, doubles on further failures (capped at 30 minutes) and survives app relaunch. After the countdown the real password logs in normally. Android emulator view (1440×3040).
+
+[LO] ການຈຳກັດການເຂົ້າລະບົບ — ຫຼັງໃສ່ລະຫັດຜິດ 5 ຄັ້ງຕິດຕໍ່ກັນ ໜ້າລັອກສະແດງ ໃສ່ລະຫັດຜິດຫຼາຍເກີນໄປ ພ້ອມນັບຖອຍຫຼັງ (ລອງໃໝ່ໄດ້ໃນ 0:28). ເລີ່ມທີ່ 30 ວິນາທີ, ເພີ່ມເປັນສອງເທົ່າຖ້າຜິດອີກ (ສູງສຸດ 30 ນາທີ) ແລະ ຍັງມີຜົນເຖິງແມ່ນປິດເປີດແອັບໃໝ່. ຄົບເວລາແລ້ວ ລະຫັດຈິງເຂົ້າໄດ້ປົກກະຕິ. ມຸມມອງໂທລະສັບ (1440×3040).

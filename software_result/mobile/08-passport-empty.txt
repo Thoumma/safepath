@@ -1,0 +1,3 @@
+[EN] Passport vault — empty state. Explains that the passport copy is encrypted with AES-256 and stored only on the device, with a dashed placeholder frame and two actions: take a photo of the passport, or pick an image from the gallery. Android emulator view (1440×3040).
+
+[LO] ຕູ້ເຊຟພາສປອດ — ສະຖານະຫວ່າງເປົ່າ. ອະທິບາຍວ່າສຳເນົາພາສປອດຖືກເຂົ້າລະຫັດ AES-256 ແລະ ບັນທຶກໄວ້ໃນເຄື່ອງຂອງເຈົ້າເທົ່ານັ້ນ ພ້ອມກອບຫວ່າງ ແລະ 2 ປຸ່ມ: ຖ່າຍຮູບພາສປອດ ຫຼື ເລືອກຈາກຄັງຮູບ. ມຸມມອງໂທລະສັບ (1440×3040).

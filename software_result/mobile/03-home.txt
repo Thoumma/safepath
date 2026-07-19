@@ -1,0 +1,3 @@
+[EN] Home screen — the main tab after login. A large red SOS button in the centre (press to send an emergency alert), an orange prompt card asking the user to complete their profile so the embassy can identify them during an SOS, and a setup-status checklist (encrypted passport stored / trusted contacts added) that updates live. Bottom navigation: Home, Trusted contacts, About, Report. Android emulator view (1440×3040).
+
+[LO] ໜ້າຫຼັກ — ແທັບຫຼັກຫຼັງເຂົ້າສູ່ລະບົບ. ມີປຸ່ມ SOS ສີແດງໃຫຍ່ຢູ່ກາງ (ກົດເພື່ອສົ່ງສັນຍານສຸກເສີນ), ກອບສີສົ້ມເຕືອນໃຫ້ຕື່ມຂໍ້ມູນຂອງທ່ານ ເພື່ອໃຫ້ສະຖານທູດຮູ້ຈັກຕົວຕົນເມື່ອກົດ SOS, ແລະ ລາຍການສະຖານະການຕັ້ງຄ່າ (ພາສປອດເຂົ້າລະຫັດ / ຄົນໄວ້ໃຈ) ທີ່ອັບເດດອັດຕະໂນມັດ. ແຖບລຸ່ມ: ໜ້າຫຼັກ, ຜູ້ໄວ້ໃຈ, ກ່ຽວກັບ, ລາຍງານ. ມຸມມອງໂທລະສັບ (1440×3040).

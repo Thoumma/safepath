@@ -1,0 +1,3 @@
+[EN] Password setup screen — create the account with two passwords: the real password (opens the normal vault) and an optional fake/duress password (opens an empty decoy vault and silently fires an SOS when someone forces the user to unlock the app). Both are stored only as salted PBKDF2 hashes. Android emulator view (1440×3040).
+
+[LO] ໜ້າຕັ້ງຄ່າລະຫັດຜ່ານ — ສ້າງບັນຊີດ້ວຍ 2 ລະຫັດ: ລະຫັດຈິງ (ເປີດຕູ້ປົກກະຕິ) ແລະ ລະຫັດປອມ/ສຸກເສີນ (ເປີດຕູ້ເປົ່າ ແລະ ສົ່ງ SOS ແບບງຽບໆ ເມື່ອຖືກຄົນອື່ນບັງຄັບໃຫ້ເປີດແອັບ). ທັງສອງລະຫັດເກັບໄວ້ເປັນ hash (PBKDF2) ເທົ່ານັ້ນ. ມຸມມອງໂທລະສັບ (1440×3040).
