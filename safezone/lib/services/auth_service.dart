@@ -7,6 +7,7 @@ import '../utils/password_hasher.dart';
 import 'contact_store.dart';
 import 'database_service.dart';
 import 'device_identity.dart';
+import 'journey_service.dart';
 import 'live_tracking_service.dart';
 import 'otp_service.dart';
 import 'sos_service.dart';
@@ -204,6 +205,10 @@ class AuthService extends ChangeNotifier {
     // the one choke point every path to the decoy passes through, so it is the
     // right place to guarantee the stream is dead before any new login.
     LiveTrackingService.instance.stop();
+    // Same rule for the routine journey stream: its foreground notification is
+    // a decoy tell, and a coerced unlock must not inherit a running share. The
+    // opt-in flag survives in secure storage; a *real* unlock resumes it.
+    JourneyService.instance.stop();
     _isUnlocked = false;
     _mode = AuthMode.real;
     notifyListeners();

@@ -7,6 +7,7 @@ import '../models/guardian.dart';
 import '../services/auth_service.dart';
 import '../services/case_service.dart';
 import '../services/contact_store.dart';
+import '../services/journey_service.dart';
 import '../services/live_tracking_service.dart';
 import '../services/passport_store.dart';
 import '../services/profile_store.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasPassport = false;
   bool _hasContact = false;
   bool _needsProfile = false;
+  bool _journeyOn = false;
   GuardianCase? _openCase;
   bool _resolving = false;
 
@@ -54,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _hasPassport = false;
           _hasContact = false;
           _needsProfile = false;
+          _journeyOn = false;
           _openCase = null;
         });
       }
@@ -62,13 +65,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final hp = await PassportStore.instance.hasPassport();
     final contacts = await ContactStore.instance.loadContacts();
     final verified = await ProfileStore.instance.hasVerifiedPhone;
+    final journeyOn = await JourneyService.instance.isEnabled();
     if (mounted) {
       setState(() {
         _hasPassport = hp;
         _hasContact = contacts.isNotEmpty;
         _needsProfile = !verified;
+        _journeyOn = journeyOn;
       });
     }
+
+    // If the user left journey sharing on, restart its stream after a relaunch
+    // or unlock. Below the decoy early-return on purpose — resume() has its own
+    // gate too, but in decoy this line must not even run.
+    unawaited(JourneyService.instance.resume());
 
     // Separate round trip: it hits the network, and the local dashboard must
     // not wait on it.
@@ -181,6 +191,52 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// The journey-sharing opt-in: while on, the trusted contacts (and the
+  /// embassy console) can follow this phone on a live map. Rendered only for a
+  /// verified profile — without one there is nowhere to attach the trail — and
+  /// never in decoy mode (the whole dashboard is already blanked there, and
+  /// the card's mere presence would hint that a real profile exists).
+  Widget _journeyCard() {
+    final tokens = context.tokens;
+    final text = context.text;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainer,
+        borderRadius: SafeZoneTokens.borderRadius,
+        border: Border.all(
+          color: _journeyOn ? tokens.success : context.colors.outlineVariant,
+          width: SafeZoneTokens.ruleHair,
+        ),
+      ),
+      child: SwitchListTile(
+        secondary: Icon(
+          Icons.route_outlined,
+          color: _journeyOn ? tokens.successInk : context.colors.onSurface,
+        ),
+        title: Text('ແບ່ງປັນການເດີນທາງ', style: text.labelLarge),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            _journeyOn
+                ? 'ຄົນໄວ້ໃຈຂອງທ່ານເຫັນຕຳແໜ່ງຂອງທ່ານແບບສົດ'
+                : 'ປິດຢູ່ — ບໍ່ມີໃຜເຫັນຕຳແໜ່ງຂອງທ່ານ',
+            style: text.bodySmall,
+          ),
+        ),
+        value: _journeyOn,
+        onChanged: (v) async {
+          // Flip the UI immediately; the service persists the flag and starts
+          // or stops the stream. Turning it off also retracts the server-side
+          // trail (best-effort).
+          setState(() => _journeyOn = v);
+          await JourneyService.instance.setEnabled(v);
+        },
       ),
     );
   }
@@ -374,6 +430,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
+
+                      // Journey sharing needs a verified profile: the trail is
+                      // keyed to the citizen record the profile creates.
+                      if (!_needsProfile) _journeyCard(),
 
                       const SizedBox(height: 24),
                     ],

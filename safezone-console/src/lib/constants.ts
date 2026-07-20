@@ -107,7 +107,17 @@ export type NavItem = {
   href: string;
   lo: string;
   en: string;
-  icon: "LayoutDashboard" | "Siren" | "Users" | "Flag" | "BarChart3" | "ShieldCheck" | "ScrollText" | "Settings";
+  icon:
+    | "LayoutDashboard"
+    | "Siren"
+    | "Users"
+    | "Flag"
+    | "BarChart3"
+    | "ShieldCheck"
+    | "ScrollText"
+    | "Settings"
+    | "MapPinned"
+    | "Waypoints";
   /** Embassy-only surface: hidden from PARTNER staff. */
   staffOnly?: boolean;
 };
@@ -117,6 +127,10 @@ export const NAV: readonly NavItem[] = [
   { href: "/admin/inbox", lo: "ສາຍ SOS", en: "SOS Inbox", icon: "Siren" },
   { href: "/admin/reports", lo: "ລາຍງານ ການຄ້າ", en: "Trafficking tips", icon: "Flag" },
   { href: "/admin/citizens", lo: "ພົນລະເມືອງ", en: "Citizens", icon: "Users" },
+  // Live positions are among the most sensitive data the console holds, and
+  // the social graph is close behind — both embassy-only, like KYC.
+  { href: "/admin/map", lo: "ແຜນທີ່ ສົດ", en: "Live map", icon: "MapPinned", staffOnly: true },
+  { href: "/admin/connect", lo: "ເຄືອຂ່າຍ ຄົນ", en: "People Connect", icon: "Waypoints", staffOnly: true },
   { href: "/admin/kyc", lo: "ຢືນຢັນ ຕົວຕົນ", en: "KYC", icon: "ShieldCheck", staffOnly: true },
   { href: "/admin/logs", lo: "ບັນທຶກ ລະບົບ", en: "Activity Log", icon: "ScrollText" },
   { href: "/admin/analytics", lo: "ສະຖິຕິ", en: "Analytics", icon: "BarChart3" },

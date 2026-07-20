@@ -28,9 +28,20 @@ model Citizen {
   kycStatus     KycStatus        @default(PENDING) @map("kyc_status")
   kycReviewedBy String?          @map("kyc_reviewed_by")
   kycReviewedAt DateTime?        @map("kyc_reviewed_at")
+  // Journey sharing: an *opt-in*, routine (non-emergency) location stream the
+  // citizen switches on in the app so their trusted contacts — and the console
+  // live map — can follow them while travelling. The latest fix is mirrored
+  // here (like Case.lat/lng) so list views never need the breadcrumb table.
+  // Freshness decides visibility: a flag left true with a stale lastJourneyAt
+  // must render as "not sharing".
+  journeySharing Boolean         @default(false) @map("journey_sharing")
+  journeyLat     Float?          @map("journey_lat")
+  journeyLng     Float?          @map("journey_lng")
+  lastJourneyAt  DateTime?       @map("last_journey_at") @db.Timestamptz(3)
   createdAt     DateTime         @default(now()) @map("created_at")
   contacts      TrustedContact[]
   cases         Case[]
+  journeyLocations JourneyLocation[]
 
   @@index([kycStatus])
   @@map("citizens")
@@ -141,6 +152,25 @@ model CaseLocation {
 
   @@index([caseId, createdAt])
   @@map("case_locations")
+}
+
+/// A journey-sharing breadcrumb — citizen-scoped, deliberately *not* a case.
+///
+/// Journey sharing is a routine opt-in ("watch me while I travel"), not an
+/// emergency: attaching it to Case would mint fake cases into the inbox and
+/// pollute analytics. Written by `POST /api/me/journey/track`, which also
+/// prunes each citizen's trail to the last 12 hours — a journey is a live
+/// picture, not an archive, and keeping less is the privacy-correct default.
+model JourneyLocation {
+  id        String   @id @default(uuid())
+  citizenId String   @map("citizen_id")
+  citizen   Citizen  @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([citizenId, createdAt])
+  @@map("journey_locations")
 }
 
 /// An entry on a case timeline (SOS received, forwarded, responder assigned...).

@@ -108,6 +108,40 @@ _Last reviewed: 2026-07-19_
   default is *shown* — chosen so the provided QR images are live immediately).
   Console tsc + `next build` clean.
 
+- Journey sharing + live maps + People Connect (2026-07-20): three features.
+  **(1) Journey sharing (app):** opt-in "ແບ່ງປັນການເດີນທາງ" toggle on Home
+  (verified-profile only) streams GPS every 60s (12h session cap) via new
+  `lib/services/journey_service.dart` — a sibling of `LiveTrackingService`,
+  NOT a mode on it (SOS + journey run simultaneously; SOS keeps the single
+  geolocator FGS, journey defers its background stream when SOS is tracking).
+  Duress-safe: `start()` decoy-gated, `resume()` refuses to even read the
+  opt-in flag in decoy, `AuthService.lock()` stops it (notification torn down
+  before any fake unlock); covered by `test/journey_service_test.dart` (6
+  tests incl. decoy + lock drills). Console: new `journey_locations` table +
+  `Citizen.journeySharing/journeyLat/journeyLng/lastJourneyAt`,
+  `PUT /api/me/journey` (off = deletes the whole trail) and
+  `POST /api/me/journey/track` (prunes >12h, re-asserts sharing). Freshness
+  (2h window) — not the flag — decides what maps show, so a lost "off" PUT
+  degrades safely. **(2) In-app guardian map:** `flutter_map` 8 + OSM tiles
+  (no API key; `userAgentPackageName` set per OSM policy). Guardian tab embeds
+  `widgets/guardian_map.dart` above the list (red = open SOS trail, navy =
+  journey; expand → full-screen `/guardian-map`); guardian cards get a calm
+  journey row; live-poll now also runs while any journey is live.
+  `GET /api/me/guardians` extended with `journey {lat,lng,at,trail}` +
+  `case.trail`. **(3) Console:** two new embassy-only sidebar items
+  (staffOnly + in-page PARTNER redirect): `/admin/map` (react-leaflet live
+  map, SOS + journey layers — DURESS *included*; 15s AutoRefresh while
+  anything is on it) and `/admin/connect` "People Connect" (d3-force + plain
+  SVG network of citizens ↔ trusted contacts joined on E.164 phone; shared
+  contacts collapse into hub nodes, citizen↔citizen bridges in amber; hover
+  neighbourhood, click-through to Citizens; pure builder in
+  `src/lib/connect-graph.ts`). Verified: console tsc + `next build` clean,
+  `npm run db:push` applied; app `flutter analyze` clean, 61/61 tests pass.
+  **Remaining:** on-device journey run (toggle → trail in `/admin/map` +
+  guardian phone's map) is blocked on the same Supabase SMS-provider gap as
+  section A; OSM tile fetch needs network (map tiles blank offline — list
+  still works).
+
 ---
 
 ## ⏭ Next session — planned (requested 2026-07-19)

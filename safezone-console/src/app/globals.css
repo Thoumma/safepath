@@ -433,6 +433,18 @@
 .map-dot--medium   { stroke: hsl(var(--medium));   fill: hsl(var(--medium)); }
 .map-dot--low      { stroke: hsl(var(--low));      fill: hsl(var(--low)); }
 
+/* Live-map trails (the /admin/map breadcrumb polylines). Same token trick as
+   the dots: an SOS trail is red because red means emergency; a journey share
+   is the primary navy — routine, watched, not alarming. */
+.map-trail {
+  fill: none;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.map-trail--sos     { stroke: hsl(var(--critical)); stroke-opacity: 0.8; }
+.map-trail--journey { stroke: hsl(var(--primary));  stroke-opacity: 0.7; }
+
 /* Reference layer: UNODC baseline country shading. Fill opacity is set
    inline per country (share-scaled); only the hue comes from here so it
    stays the same red the console already means by "trafficking". */

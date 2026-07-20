@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/guardian.dart';
 import '../services/guardian_service.dart';
 import '../theme.dart';
+import '../widgets/guardian_map.dart';
 import '../widgets/primary_button.dart';
 
 /// "These people made you their emergency contact."
@@ -71,10 +72,12 @@ class _GuardianScreenState extends State<GuardianScreen> {
     }
   }
 
-  /// Runs the poll only while someone is in emergency.
+  /// Runs the poll only while something on screen is actually moving — an
+  /// open emergency, or a journey share still delivering fresh fixes.
   void _syncLivePolling() {
-    final anyEmergency =
-        _result?.guardians.any((g) => g.inEmergency) ?? false;
+    final anyEmergency = _result?.guardians
+            .any((g) => g.inEmergency || (g.journey?.isLive ?? false)) ??
+        false;
     if (anyEmergency) {
       _liveTimer ??= Timer.periodic(
         const Duration(seconds: 15),
@@ -160,12 +163,40 @@ class _GuardianScreenState extends State<GuardianScreen> {
             detail: 'ເມື່ອມີຄົນຕັ້ງທ່ານເປັນຜູ້ຊ່ວຍເຫຼືອ ລາຍຊື່ຈະຂຶ້ນຢູ່ນີ້.',
           );
         }
-        return ListView.separated(
+        // The map leads when anyone has a position — a pin on a map answers
+        // "where are they?" faster than any card. It shows both kinds of
+        // track: red for an open SOS case, blue for an opt-in journey share.
+        final mapped = r.guardians.where((g) => g.hasAnyLocation).toList();
+        return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
-          itemCount: r.guardians.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, i) => _guardianCard(r.guardians[i]),
+          children: [
+            if (mapped.isNotEmpty) ...[
+              Stack(
+                children: [
+                  GuardianMap(guardians: mapped, height: 240),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Material(
+                      color: context.colors.surface.withAlpha(230),
+                      borderRadius: BorderRadius.circular(6),
+                      child: IconButton(
+                        icon: const Icon(Icons.fullscreen),
+                        tooltip: 'ຂະຫຍາຍແຜນທີ່',
+                        onPressed: () => context.push('/guardian-map'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            for (var i = 0; i < r.guardians.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _guardianCard(r.guardians[i]),
+            ],
+          ],
         );
     }
   }
@@ -217,6 +248,57 @@ class _GuardianScreenState extends State<GuardianScreen> {
               ),
             ],
           ),
+
+          // Journey share: the calm counterpart of the emergency block below.
+          // Shown only when there is no open case — an emergency outranks a
+          // routine trip, and one row of truth beats two competing ones.
+          if (!emergency && g.journey != null) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.route_outlined, size: 15, color: colors.primary),
+                const SizedBox(width: 6),
+                if (g.journey!.isLive) ...[
+                  Text(
+                    'ກຳລັງແບ່ງປັນການເດີນທາງ',
+                    style: text.labelMedium!.copyWith(color: colors.primary),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    'ອັບເດດຕຳແໜ່ງ ${_formatTime(g.journey!.at)}',
+                    style: text.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'ເບິ່ງແຜນທີ່',
+                    icon: Icons.map_outlined,
+                    isSecondary: true,
+                    onPressed: () => context.push('/guardian-map'),
+                  ),
+                ),
+                if (g.phone != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PrimaryButton(
+                      label: 'ໂທຫາ',
+                      icon: Icons.phone,
+                      onPressed: () => _call(g.phone!),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
 
           if (emergency && g.activeCase != null) ...[
             const SizedBox(height: 12),

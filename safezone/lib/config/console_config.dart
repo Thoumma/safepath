@@ -35,6 +35,16 @@ class ConsoleConfig {
   /// `open:false` means there is no case to track and the app should stop.
   static Uri get caseTrackEndpoint => Uri.parse('$baseUrl/api/me/case/track');
 
+  /// PUT the journey-sharing toggle. `sharing:false` also deletes the
+  /// server-side trail — "stop sharing" must retract the history too.
+  static Uri get journeyEndpoint => Uri.parse('$baseUrl/api/me/journey');
+
+  /// POST a journey-sharing GPS breadcrumb (the routine, opt-in counterpart of
+  /// [caseTrackEndpoint]). Returns `{sharing}` — `sharing:false` means the
+  /// console has no citizen profile yet and the app should stop posting.
+  static Uri get journeyTrackEndpoint =>
+      Uri.parse('$baseUrl/api/me/journey/track');
+
   /// POST a suspected-trafficking report. Public and unauthenticated — no token
   /// needed, so it works even before the user has verified a phone.
   static Uri get reportEndpoint => Uri.parse('$baseUrl/api/report');

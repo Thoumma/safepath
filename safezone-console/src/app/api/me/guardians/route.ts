@@ -33,6 +33,11 @@ export async function GET(req: Request) {
     throw e;
   }
 
+  // Trails are capped and windowed: enough to draw a meaningful line on the
+  // app's map, small enough that a guardian list polled every 15s stays cheap.
+  const TRAIL_WINDOW_MS = 2 * 60 * 60 * 1000;
+  const trailSince = new Date(Date.now() - TRAIL_WINDOW_MS);
+
   const edges = await prisma.trustedContact.findMany({
     where: { phone: caller.phone },
     include: {
@@ -42,7 +47,16 @@ export async function GET(req: Request) {
             where: { status: { in: ["NEW", "IN_PROGRESS"] } },
             orderBy: { createdAt: "desc" },
             take: 1,
-            include: { locations: { orderBy: { createdAt: "desc" }, take: 1 } },
+            include: {
+              locations: { orderBy: { createdAt: "desc" }, take: 120 },
+            },
+          },
+          // The opt-in journey stream ("watch me while I travel"), distinct
+          // from the emergency case trail above.
+          journeyLocations: {
+            where: { createdAt: { gte: trailSince } },
+            orderBy: { createdAt: "asc" },
+            take: 120,
           },
         },
       },
@@ -51,6 +65,21 @@ export async function GET(req: Request) {
 
   const guardians = edges.map((e) => {
     const openCase = e.citizen.cases[0];
+    // A journey is shown only while it is *fresh*. The flag alone is not
+    // enough: a device that died mid-journey (or whose "off" PUT never landed)
+    // must fade off the map rather than pin a stale point forever.
+    const journeyFresh =
+      e.citizen.journeySharing &&
+      e.citizen.journeyLat != null &&
+      e.citizen.journeyLng != null &&
+      e.citizen.lastJourneyAt != null &&
+      Date.now() - e.citizen.lastJourneyAt.getTime() < TRAIL_WINDOW_MS;
+    const caseTrail = openCase
+      ? openCase.locations
+          .slice()
+          .reverse() // stored desc for "latest first"; the map wants asc
+          .map((l) => ({ lat: l.lat, lng: l.lng, at: l.createdAt }))
+      : [];
     return {
       citizenId: e.citizen.id,
       fullName: e.citizen.fullName,
@@ -71,6 +100,19 @@ export async function GET(req: Request) {
             // Latest live fix, so a trusted contact sees the position freshen
             // as the person moves rather than a point frozen at first SOS.
             trackedAt: openCase.locations[0]?.createdAt ?? null,
+            trail: caseTrail,
+          }
+        : null,
+      journey: journeyFresh
+        ? {
+            lat: e.citizen.journeyLat,
+            lng: e.citizen.journeyLng,
+            at: e.citizen.lastJourneyAt,
+            trail: e.citizen.journeyLocations.map((l) => ({
+              lat: l.lat,
+              lng: l.lng,
+              at: l.createdAt,
+            })),
           }
         : null,
     };
