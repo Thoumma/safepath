@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { MapPin, Clock, Mail, Flag, Globe, Smartphone } from "lucide-react";
+import { MapPin, Clock, Mail, Flag, Globe, Smartphone, ImageIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { EvidencePhotos } from "@/components/evidence-photos";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,15 +44,21 @@ export default async function ReportsTriagePage({ searchParams }: { searchParams
 
   // Sign each report's evidence paths for staff viewing (short-lived URLs).
   // Only touch storage when photos are configured; broken paths sign to null.
+  //
+  // 30 minutes, not the 10-minute default: this is a queue an officer keeps
+  // open while working through it, and a URL that expires under them turns
+  // evidence into a broken image with no explanation. Still short enough that
+  // a leaked link dies quickly.
+  const PHOTO_URL_TTL_SEC = 30 * 60;
   const photosById = new Map<string, string[]>();
   if (photosEnabled()) {
     await Promise.all(
       reports
         .filter((r) => r.photoUrls.length > 0)
         .map(async (r) => {
-          const urls = (await Promise.all(r.photoUrls.map((p) => signedUrl(p)))).filter(
-            (u): u is string => Boolean(u)
-          );
+          const urls = (
+            await Promise.all(r.photoUrls.map((p) => signedUrl(p, PHOTO_URL_TTL_SEC)))
+          ).filter((u): u is string => Boolean(u));
           if (urls.length) photosById.set(r.id, urls);
         })
     );
@@ -112,6 +119,15 @@ export default async function ReportsTriagePage({ searchParams }: { searchParams
                           {r.source === "MOBILE_APP" ? <Smartphone className="size-3" /> : <Globe className="size-3" />}
                           {r.source === "MOBILE_APP" ? "App" : "Web"}
                         </span>
+                        {/* Evidence count earns a place in the header row: a
+                            tip with photos is worth opening first. */}
+                        {(photosById.get(r.id)?.length ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-sm border border-border px-1.5 py-0.5 text-2xs text-muted-foreground">
+                            <ImageIcon aria-hidden className="size-3" />
+                            <span className="font-mono tabular-nums">{photosById.get(r.id)!.length}</span>
+                            <span lang="lo" className="font-lao">ຫຼັກຖານ</span>
+                          </span>
+                        )}
                         <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">{r.refNo}</span>
                       </div>
 
@@ -119,25 +135,18 @@ export default async function ReportsTriagePage({ searchParams }: { searchParams
                         {r.description}
                       </p>
 
-                      {photosById.get(r.id) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {photosById.get(r.id)!.map((url, i) => (
-                            <a
-                              key={i}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block size-20 overflow-hidden rounded-sm border border-border bg-muted transition-opacity hover:opacity-80"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={url}
-                                alt={`ຫຼັກຖານ ${i + 1}`}
-                                className="size-full object-cover"
-                              />
-                            </a>
-                          ))}
-                        </div>
+                      <EvidencePhotos urls={photosById.get(r.id) ?? []} refNo={r.refNo} />
+
+                      {/* The reporter attached evidence but this deployment
+                          cannot serve it. Silence here would read as "no
+                          photos" and an officer would never go looking. */}
+                      {r.photoUrls.length > 0 && !photosById.get(r.id) && (
+                        <p className="mt-3 inline-flex items-center gap-1.5 rounded-sm border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          <ImageIcon aria-hidden className="size-3.5 shrink-0" />
+                          <span lang="lo" className="font-lao leading-lao">
+                            ມີ {r.photoUrls.length} ຮູບ ແຕ່ ເປີດ ບໍ່ ໄດ້ — ບ່ອນ ເກັບ ຮູບ ຍັງ ບໍ່ ໄດ້ ຕັ້ງຄ່າ
+                          </span>
+                        </p>
                       )}
 
                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">

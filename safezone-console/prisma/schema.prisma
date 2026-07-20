@@ -123,6 +123,7 @@ model Case {
   resolvedAt  DateTime?      @map("resolved_at")
   events      CaseEvent[]
   locations   CaseLocation[]
+  messages    CaseMessage[]
 
   @@index([status])
   @@index([routedTo])
@@ -183,7 +184,52 @@ model CaseEvent {
   actor     String?
   createdAt DateTime @default(now()) @map("created_at")
 
+  // The case page orders every timeline by exactly this pair on every load.
+  @@index([caseId, createdAt])
   @@map("case_events")
+}
+
+/// One message in the two-way thread between a citizen and the duty officer.
+///
+/// Deliberately NOT a [CaseEvent]. That model is one-directional narration for
+/// the officer's audit trail — no direction, no read state, no author identity.
+/// Folding a conversation into it would make the timeline unreadable and the
+/// audit trail unprovable. A case has both: a timeline of what was *done*, and
+/// a thread of what was *said*.
+///
+/// Chat exists only while the case is open, and never for a DURESS case — the
+/// device must not learn such a case exists (see `/api/me/case`). That rule is
+/// enforced three times over: in the app-facing API, in the RLS policy
+/// (`supabase/chat_policies.sql`), and by the app's own decoy gate.
+model CaseMessage {
+  id        String           @id @default(uuid())
+  caseId    String           @map("case_id")
+  case      Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  direction MessageDirection
+  body      String
+
+  /// Staff author; null for citizen messages. `authorName` is denormalised for
+  /// display (mirroring CaseEvent.actor), `staffId` is the stable identity.
+  staffId    String? @map("staff_id")
+  authorName String? @map("author_name")
+
+  /// App-generated uuid. Makes the offline outbox safe to retry: the same
+  /// message re-sent after a failed flush collapses onto one row instead of
+  /// posting twice. Null for staff messages, which are never queued.
+  clientId String? @map("client_id")
+
+  readByStaffAt   DateTime? @map("read_by_staff_at") @db.Timestamptz(3)
+  readByCitizenAt DateTime? @map("read_by_citizen_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([caseId, clientId])
+  @@index([caseId, createdAt])
+  @@map("case_messages")
+}
+
+enum MessageDirection {
+  FROM_CITIZEN
+  FROM_STAFF
 }
 
 /// A location ping written directly by the SafeZone mobile app (via PostgREST

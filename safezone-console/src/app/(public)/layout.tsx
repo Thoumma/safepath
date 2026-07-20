@@ -9,9 +9,22 @@ export const metadata: Metadata = {
     "Report suspected human trafficking, anonymously and securely. Protecting Lao travellers abroad.",
 };
 
-// Read donation settings per request so the nav/footer links appear or hide the
-// moment staff toggle donations — and so `npm run build` never needs the DB.
-export const dynamic = "force-dynamic";
+// The public site is cacheable, and must be: its visitors are on Lao mobile
+// networks, and this layout used to be `force-dynamic` purely to read ONE
+// donation setting — which forced Home/About/Contact/Report to render on a
+// server per request and told the CDN not to store anything. Measured cost:
+// ~1.5s TTFB warm, 4.1s cold.
+//
+// With ISR the pages are served from the edge instead. Staff toggling
+// donations does NOT wait for this window: `saveDonationSettings` calls
+// `revalidatePath("/", "layout")`, so the nav/footer update on the next
+// request. The 10 minutes is only the backstop for changes made straight in
+// the database.
+//
+// The DB read below stays wrapped in try/catch, so a build (or a
+// revalidation) with an unreachable database degrades to "no Donate link"
+// rather than failing the page.
+export const revalidate = 600;
 
 /**
  * The public website shell — Home / About / Contact / Report / Donate.

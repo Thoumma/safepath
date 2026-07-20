@@ -141,6 +141,30 @@ _Last reviewed: 2026-07-19_
   guardian phone's map) is blocked on the same Supabase SMS-provider gap as
   section A; OSM tile fetch needs network (map tiles blank offline — list
   still works).
+- Demo data + viewer polish (2026-07-20, follow-up to the above):
+  **Seed** (`prisma/seed.ts`) now populates the new surfaces — 5 journey
+  sharers (4 fresh, **1 deliberately stale at 5h so the 2h freshness rule is
+  visible as a rule**), 24 journey points, 48 case-trail points on the open
+  SOS cases, and a 25-row trusted-contact network built to three shapes:
+  6 citizen↔citizen **bridges**, 3 shared **hubs** (an agent linking 5
+  travellers, an employer linking 3, a village coordinator linking 2) and
+  ordinary family leaves. Journey sharers are excluded from the bulk-case pool
+  so nobody is simultaneously "calm journey" and "open emergency".
+  **People Connect filters:** name/phone search, a "links at least N" hub
+  filter (all/2+/3+/5+), a citizen↔citizen-only toggle, a top-connectors bar
+  that isolates a hub's circle in one click, a ring on any contact linking 3+
+  people, Esc-to-clear, and a visible `shown/total` count.
+  **Evidence photos** (`components/evidence-photos.tsx`): 112px previews and
+  an in-page lightbox (zoom, prev/next, filmstrip, Esc/arrow keys) replacing
+  the 80px thumb that dumped a raw signed URL in a new tab; signed-URL TTL
+  raised 10min → 30min for the triage queue; a report whose photos cannot be
+  served now says so instead of rendering silently empty.
+  **Toggle status colour:** new server-only `components/enable-toggle.tsx`
+  (pure CSS `peer` variants) gives the settings switches a green ເປີດ/ON or
+  grey ປິດ/OFF pill; the app's journey toggle carries the state in three
+  redundant signals (pill with a word, card tint/border, switch colour) so it
+  survives colourblindness. Verified: console tsc + `next build` clean, app
+  `flutter analyze` clean, 61/61 tests pass.
 
 ---
 

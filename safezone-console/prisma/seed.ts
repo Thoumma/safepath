@@ -5,7 +5,11 @@ const db = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding SafeZone Console...");
 
-  // Clean (dev only)
+  // Clean (dev only). Location tables first: they cascade anyway, but an
+  // explicit order documents what this wipes. Trafficking reports are NOT
+  // touched — they are real public submissions, not fixtures.
+  await db.journeyLocation.deleteMany();
+  await db.caseLocation.deleteMany();
   await db.caseEvent.deleteMany();
   await db.case.deleteMany();
   await db.trustedContact.deleteMany();
@@ -27,11 +31,19 @@ async function main() {
   const decha = await db.responder.create({ data: { name: "ທ. Decha", phone: "+66811112222", partnerId: vfi.id } });
   const aziz = await db.responder.create({ data: { name: "ທ. Aziz", phone: "+60199998888", partnerId: safepath.id } });
 
+  // The number you verify with in the app (registered as a Supabase *test*
+  // phone number, so no SMS is ever sent). It is attached to the citizen who
+  // has the open CRITICAL case, so a real device that logs in with it lands
+  // straight on a live case: open-case banner, live tracking, chat thread, and
+  // one guardian who lists this number. Override without editing code:
+  //   DEMO_PHONE=+8562055512345 npm run db:seed
+  const DEMO_PHONE = process.env.DEMO_PHONE ?? "+856209690898";
+
   // --- Citizens + contacts ---
   const khamla = await db.citizen.create({
     data: {
       fullName: "ນາງ ຄຳຫລ້າ ພົມມະ", passportNo: "P1234567", dob: new Date("1994-03-12"),
-      phone: "+8562099887766", homeProvince: "Vientiane Capital",
+      phone: DEMO_PHONE, homeProvince: "Vientiane Capital",
       contacts: { create: [{ name: "ທ. ບຸນມີ ພົມມະ", phone: "+8562055443322", relation: "ຜົວ", isPrimary: true }] },
     },
   });
@@ -56,18 +68,21 @@ async function main() {
       contacts: { create: [{ name: "ນາງ ພອນ", phone: "+8562033221100", relation: "ພັນລະຍາ", isPrimary: true }] },
     },
   });
-  // A few safe travellers for the directory
+  // A few safe travellers for the directory. Phones matter: a trusted contact
+  // whose number matches a citizen's is what turns two separate lists into a
+  // *connection* on the People Connect graph.
   const extraCitizens = [];
   for (const c of [
-    { fullName: "ນາງ ສີດາ ແກ້ວ", passportNo: "P5566778", homeProvince: "Vientiane" },
-    { fullName: "ທ. ຄຳຜາຍ ພິມມະສອນ", passportNo: "P9900112", homeProvince: "Xieng Khouang" },
-    { fullName: "ນາງ ໄໝ ພັນທະ", passportNo: "P3344556", homeProvince: "Bokeo" },
-    { fullName: "ທ. ວິໄລ ສີສຸພັນ", passportNo: "P6677889", homeProvince: "Oudomxay" },
-    { fullName: "ນາງ ນາລີ ວໍລະຈິດ", passportNo: "P1122334", homeProvince: "Khammouane" },
-    { fullName: "ທ. ພູວົງ ແສງອາລຸນ", passportNo: "P8899001", homeProvince: "Salavan" },
+    { fullName: "ນາງ ສີດາ ແກ້ວ", passportNo: "P5566778", phone: "+8562012341234", homeProvince: "Vientiane" },
+    { fullName: "ທ. ຄຳຜາຍ ພິມມະສອນ", passportNo: "P9900112", phone: "+8562023452345", homeProvince: "Xieng Khouang" },
+    { fullName: "ນາງ ໄໝ ພັນທະ", passportNo: "P3344556", phone: "+8562034563456", homeProvince: "Bokeo" },
+    { fullName: "ທ. ວິໄລ ສີສຸພັນ", passportNo: "P6677889", phone: "+8562045674567", homeProvince: "Oudomxay" },
+    { fullName: "ນາງ ນາລີ ວໍລະຈິດ", passportNo: "P1122334", phone: "+8562056785678", homeProvince: "Khammouane" },
+    { fullName: "ທ. ພູວົງ ແສງອາລຸນ", passportNo: "P8899001", phone: "+8562067896789", homeProvince: "Salavan" },
   ]) {
     extraCitizens.push(await db.citizen.create({ data: c }));
   }
+  const [sida, khamphay, mai, vilai, nali, phouvong] = extraCitizens;
 
   // --- Cases ---
   const c1 = await db.case.create({
@@ -179,7 +194,14 @@ async function main() {
     { city: "Seoul", country: "KR", lat: 37.566, lng: 126.978, type: TYPES.medical, severity: S.MEDIUM, status: C.IN_PROGRESS, routedTo: P.EMBASSY, daysAgo: 10 },
   ];
 
-  const allCitizens = [khamla, somphone, mani, kaysone, ...extraCitizens];
+  // Five travellers are reserved as *safe and journey-sharing* (see the
+  // journey block below) and so must never be handed a bulk case: a person
+  // cannot be calmly sharing a trip and be an open emergency at once.
+  const journeySharers = [sida, vilai, nali, khamphay, phouvong];
+  const sharerIds = new Set(journeySharers.map((c) => c.id));
+  const allCitizens = [khamla, somphone, mani, kaysone, ...extraCitizens].filter(
+    (c) => !sharerIds.has(c.id)
+  );
   const partnerIdOf = { EMBASSY: embassy.id, VFI: vfi.id, SAFEPATH: safepath.id } as const;
 
   let seq = 100;
@@ -207,7 +229,177 @@ async function main() {
     });
   }
 
-  console.log(`✅ Seeded: 3 partners, ${await db.citizen.count()} citizens, ${await db.case.count()} cases.`);
+  // ── The trusted-contact network (People Connect) ──────────────────────────
+  //
+  // Three shapes, because a graph of only one shape teaches nothing:
+  //  1. BRIDGES — a contact whose phone is itself a registered citizen. This is
+  //     the edge that says "these two travellers know each other".
+  //  2. HUBS — one phone listed by several citizens (a recruiter, an employer,
+  //     a village coordinator). On the graph they collapse into a single node
+  //     with many spokes, which is exactly the pattern an analyst hunts for.
+  //  3. LEAVES — ordinary family contacts, one per person.
+  const contactRows: { citizenId: string; name: string; phone: string; relation: string; isPrimary?: boolean }[] = [
+    // 1. Citizen ↔ citizen bridges.
+    { citizenId: khamla.id, name: "ທ. ສົມພອນ ໄຊຍະ", phone: somphone.phone!, relation: "ອ້າຍ" },
+    { citizenId: mani.id, name: "ທ. ໄກສອນ ວົງສາ", phone: kaysone.phone!, relation: "ລູກພີ່ລູກນ້ອງ" },
+    { citizenId: sida.id, name: "ນາງ ຄຳຫລ້າ ພົມມະ", phone: khamla.phone!, relation: "ໝູ່ຮ່ວມງານ", isPrimary: true },
+    { citizenId: vilai.id, name: "ນາງ ໄໝ ພັນທະ", phone: mai.phone!, relation: "ໝູ່", isPrimary: true },
+    { citizenId: nali.id, name: "ທ. ຄຳຜາຍ ພິມມະສອນ", phone: khamphay.phone!, relation: "ອ້າຍ", isPrimary: true },
+    { citizenId: khamphay.id, name: "ນາງ ນາລີ ວໍລະຈິດ", phone: nali.phone!, relation: "ນ້ອງສາວ" },
+
+    // 2. Hub A — one "employment agent" listed by five travellers. The shape a
+    //    duty officer should be able to see at a glance.
+    ...[khamla, somphone, mani, sida, mai].map((c) => ({
+      citizenId: c.id,
+      name: "ທ. ບຸນຍັງ (ນາຍໜ້າ)",
+      phone: "+66850001111",
+      relation: "ນາຍໜ້າ",
+    })),
+
+    // 3. Hub B — a Bangkok employer shared by three.
+    ...[kaysone, vilai, phouvong].map((c) => ({
+      citizenId: c.id,
+      name: "Mae Noi (ນາຍຈ້າງ)",
+      phone: "+66899990000",
+      relation: "ນາຍຈ້າງ",
+    })),
+
+    // 4. Hub C — a home-village coordinator shared by two.
+    ...[nali, khamphay].map((c) => ({
+      citizenId: c.id,
+      name: "ນາງ ບົວ (ນາຍບ້ານ)",
+      phone: "+8562070707070",
+      relation: "ນາຍບ້ານ",
+    })),
+
+    // 5. Ordinary family leaves.
+    { citizenId: sida.id, name: "ນາງ ຈັນ ແກ້ວ", phone: "+8562090909090", relation: "ແມ່" },
+    { citizenId: mai.id, name: "ທ. ສຸກ ພັນທະ", phone: "+8562091919191", relation: "ພໍ່", isPrimary: true },
+    { citizenId: vilai.id, name: "ນາງ ຄຳ ສີສຸພັນ", phone: "+8562092929292", relation: "ແມ່" },
+    { citizenId: phouvong.id, name: "ນາງ ອຳໄພ", phone: "+8562093939393", relation: "ພັນລະຍາ", isPrimary: true },
+    { citizenId: khamphay.id, name: "ນາງ ສົມສີ", phone: "+8562094949494", relation: "ແມ່" },
+  ];
+  for (const row of contactRows) {
+    await db.trustedContact.create({ data: { ...row, isPrimary: row.isPrimary ?? false } });
+  }
+
+  // ── Journey sharing + live trails ─────────────────────────────────────────
+  //
+  // `journeySharing` alone does not put anyone on a map: every viewer checks
+  // *freshness* (a fix within the last 2h). So the fixtures below deliberately
+  // include one stale sharer, which must NOT appear — that is the rule working.
+  const min = 60_000;
+  const journeys: { citizen: { id: string }; agoMin: number; route: [number, number][] }[] = [
+    // Savannakhet → the Thai border at Mukdahan. Streaming right now.
+    {
+      citizen: sida,
+      agoMin: 0.5,
+      route: [
+        [16.5560, 104.7520], [16.5601, 104.7398], [16.5648, 104.7301],
+        [16.5702, 104.7205], [16.5761, 104.7118], [16.5824, 104.7040],
+      ],
+    },
+    // Inside Bangkok — Victory Monument toward Chatuchak. Live.
+    {
+      citizen: vilai,
+      agoMin: 1,
+      route: [
+        [13.7650, 100.5380], [13.7712, 100.5364], [13.7788, 100.5351],
+        [13.7869, 100.5340], [13.7952, 100.5331], [13.8031, 100.5325],
+      ],
+    },
+    // Vientiane → the Friendship Bridge. Fresh, but not "live" (18 min).
+    {
+      citizen: nali,
+      agoMin: 18,
+      route: [
+        [17.9757, 102.6331], [17.9601, 102.6520], [17.9440, 102.6702],
+        [17.9282, 102.6890], [17.9131, 102.7075],
+      ],
+    },
+    // Kuala Lumpur, 70 minutes old: on the map, but plainly not live.
+    {
+      citizen: khamphay,
+      agoMin: 70,
+      route: [
+        [3.1390, 101.6869], [3.1451, 101.6950], [3.1518, 101.7031], [3.1580, 101.7110],
+      ],
+    },
+    // Stale on purpose (5h): sharing is still ON, but every viewer must drop
+    // this person — a phone that died mid-journey may not pin a ghost forever.
+    {
+      citizen: phouvong,
+      agoMin: 300,
+      route: [
+        [14.8820, 105.8300], [14.8901, 105.8395], [14.8988, 105.8480],
+      ],
+    },
+  ];
+
+  for (const j of journeys) {
+    const last = j.route[j.route.length - 1];
+    // Points are spaced a minute apart, ending `agoMin` ago — the same shape
+    // the app's 60s journey timer produces.
+    await db.journeyLocation.createMany({
+      data: j.route.map((p, i) => ({
+        citizenId: j.citizen.id,
+        lat: p[0],
+        lng: p[1],
+        createdAt: new Date(Date.now() - (j.agoMin + (j.route.length - 1 - i)) * min),
+      })),
+    });
+    await db.citizen.update({
+      where: { id: j.citizen.id },
+      data: {
+        journeySharing: true,
+        journeyLat: last[0],
+        journeyLng: last[1],
+        lastJourneyAt: new Date(Date.now() - j.agoMin * min),
+      },
+    });
+  }
+
+  // A person cannot sensibly be "on a calm journey" and "in an emergency" at
+  // the same time — two pins for one human reads as a bug. The emergency wins.
+  const inTrouble = await db.case.findMany({
+    where: { status: { in: [CaseStatus.NEW, CaseStatus.IN_PROGRESS] } },
+    select: { citizenId: true },
+  });
+  await db.citizen.updateMany({
+    where: { id: { in: inTrouble.map((c) => c.citizenId) } },
+    data: { journeySharing: false, journeyLat: null, journeyLng: null, lastJourneyAt: null },
+  });
+
+  // ── Live GPS trails on the open SOS cases ────────────────────────────────
+  // So the console live map shows a moving person, not a frozen dot.
+  const openWithGps = await db.case.findMany({
+    where: { status: { in: [CaseStatus.NEW, CaseStatus.IN_PROGRESS] }, lat: { not: null } },
+    select: { id: true, lat: true, lng: true },
+    take: 6,
+  });
+  for (const c of openWithGps) {
+    // Walk backwards from the case's current position so the newest breadcrumb
+    // agrees with Case.lat/lng, exactly as `/api/me/case/track` maintains it.
+    const steps = 8;
+    await db.caseLocation.createMany({
+      data: Array.from({ length: steps }, (_, i) => {
+        const back = steps - 1 - i; // 7 … 0
+        return {
+          caseId: c.id,
+          lat: c.lat! - back * 0.0032,
+          lng: c.lng! - back * 0.0026,
+          createdAt: new Date(Date.now() - (back * 2 + 1) * min),
+        };
+      }),
+    });
+  }
+
+  const sharingCount = await db.citizen.count({ where: { journeySharing: true } });
+  console.log(
+    `✅ Seeded: 3 partners, ${await db.citizen.count()} citizens, ${await db.case.count()} cases, ` +
+      `${await db.trustedContact.count()} trusted contacts, ${sharingCount} sharing a journey, ` +
+      `${await db.journeyLocation.count()} journey points, ${await db.caseLocation.count()} case points.`
+  );
   console.log("ℹ️  Create matching Supabase Auth users, then insert staff_users rows (see README).");
   void c1;
 }

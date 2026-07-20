@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Annotation } from "@/components/bilingual";
 import { SeverityBadge, StatusBadge } from "@/components/tags";
 import { CaseActions } from "@/components/case-actions";
+import { CaseChat } from "@/components/case-chat";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { requireStaff, caseScope } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +29,7 @@ export default async function CasePage({ params }: { params: { id: string } }) {
       responder: true,
       events: { orderBy: { createdAt: "asc" } },
       locations: { orderBy: { createdAt: "desc" }, take: 30 },
+      messages: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!c) notFound();
@@ -252,6 +254,21 @@ export default async function CasePage({ params }: { params: { id: string } }) {
                 </ol>
               </CardContent>
             </Card>
+
+            {/* The conversation, kept separate from the timeline above: one is
+                what was *done* (the audit trail), the other is what was
+                *said*. */}
+            <CaseChat
+              caseId={c.id}
+              resolved={!isOpen}
+              initial={c.messages.map((m) => ({
+                id: m.id,
+                direction: m.direction,
+                body: m.body,
+                authorName: m.authorName,
+                createdAt: m.createdAt.toISOString(),
+              }))}
+            />
           </div>
         </div>
       </div>

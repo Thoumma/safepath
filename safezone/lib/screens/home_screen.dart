@@ -201,25 +201,62 @@ class _HomeScreenState extends State<HomeScreen> {
   /// never in decoy mode (the whole dashboard is already blanked there, and
   /// the card's mere presence would hint that a real profile exists).
   Widget _journeyCard() {
+    final colors = context.colors;
     final tokens = context.tokens;
     final text = context.text;
+
+    // On/off must be readable at a glance, from across a room, by someone who
+    // is not sure they turned it off. So the state is carried by three
+    // redundant signals — a green/grey status pill with a word in it, the card
+    // tint and border, and the switch colour — never by the switch alone.
+    final onColor = tokens.success;
+    final onInk = tokens.successInk;
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
-        color: context.colors.surfaceContainer,
+        color: _journeyOn
+            ? onColor.withAlpha(20)
+            : colors.surfaceContainer,
         borderRadius: SafeZoneTokens.borderRadius,
         border: Border.all(
-          color: _journeyOn ? tokens.success : context.colors.outlineVariant,
-          width: SafeZoneTokens.ruleHair,
+          color: _journeyOn ? onColor : colors.outlineVariant,
+          width: _journeyOn ? SafeZoneTokens.rule : SafeZoneTokens.ruleHair,
         ),
       ),
       child: SwitchListTile(
         secondary: Icon(
-          Icons.route_outlined,
-          color: _journeyOn ? tokens.successInk : context.colors.onSurface,
+          _journeyOn ? Icons.route : Icons.route_outlined,
+          color: _journeyOn ? onInk : colors.onSurfaceVariant,
         ),
-        title: Text('ແບ່ງປັນການເດີນທາງ', style: text.labelLarge),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text('ແບ່ງປັນການເດີນທາງ', style: text.labelLarge),
+            ),
+            const SizedBox(width: 8),
+            // The status word itself. An icon or a colour alone would fail a
+            // colourblind user; the label never does.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: _journeyOn ? onColor : colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: _journeyOn ? onColor : colors.outlineVariant,
+                  width: SafeZoneTokens.ruleHair,
+                ),
+              ),
+              child: Text(
+                _journeyOn ? 'ເປີດ' : 'ປິດ',
+                style: text.labelMedium!.copyWith(
+                  color: _journeyOn ? Colors.white : colors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Text(
@@ -230,6 +267,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         value: _journeyOn,
+        activeThumbColor: Colors.white,
+        activeTrackColor: onColor,
+        inactiveThumbColor: colors.outline,
+        inactiveTrackColor: colors.surfaceContainerHighest,
         onChanged: (v) async {
           // Flip the UI immediately; the service persists the flag and starts
           // or stops the stream. Turning it off also retracts the server-side

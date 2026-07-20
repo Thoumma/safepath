@@ -40,14 +40,30 @@ export default async function LiveMapPage() {
 
   const trailSince = new Date(Date.now() - FRESH_WINDOW_MS);
 
+  // Trail caps are a payload budget, not a display limit. Every point fetched
+  // is serialized into the client bundle of a page that re-renders every 15s,
+  // and past ~100 points a polyline gains no visible detail — it just costs
+  // bytes on a duty officer's connection. `select` keeps the columns to the
+  // three the map actually draws with.
+  const TRAIL_POINTS = 120;
   const [openCases, sharing] = await Promise.all([
     prisma.case.findMany({
       where: { status: { in: ["NEW", "IN_PROGRESS"] }, lat: { not: null }, lng: { not: null } },
-      include: {
+      select: {
+        id: true,
+        refNo: true,
+        severity: true,
+        lat: true,
+        lng: true,
+        createdAt: true,
         citizen: { select: { fullName: true } },
         // Newest first so the cap keeps the *recent* end of a long trail;
         // reversed below because a polyline wants oldest → newest.
-        locations: { orderBy: { createdAt: "desc" }, take: 400 },
+        locations: {
+          orderBy: { createdAt: "desc" },
+          take: TRAIL_POINTS,
+          select: { lat: true, lng: true, createdAt: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -62,8 +78,9 @@ export default async function LiveMapPage() {
         lastJourneyAt: true,
         journeyLocations: {
           where: { createdAt: { gte: trailSince } },
-          orderBy: { createdAt: "asc" },
-          take: 720,
+          orderBy: { createdAt: "desc" },
+          take: TRAIL_POINTS,
+          select: { lat: true, lng: true, createdAt: true },
         },
       },
     }),
@@ -95,7 +112,12 @@ export default async function LiveMapPage() {
       phone: s.phone,
       lat: s.journeyLat!,
       lng: s.journeyLng!,
-      trail: s.journeyLocations.map((l) => ({ lat: l.lat, lng: l.lng })),
+      // Fetched newest-first (so the cap keeps the recent end); a polyline
+      // wants oldest → newest.
+      trail: s.journeyLocations
+        .slice()
+        .reverse()
+        .map((l) => ({ lat: l.lat, lng: l.lng })),
       live: Date.now() - s.lastJourneyAt!.getTime() < LIVE_WINDOW_MS,
       updatedAgo: timeAgoLao(s.lastJourneyAt!),
     }));

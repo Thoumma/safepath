@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { EnableToggle } from "@/components/enable-toggle";
 import { requireStaff } from "@/lib/auth";
 import { getDonationConfig, getPassportApiConfig, donationReady, passportApiReady } from "@/lib/settings";
 import { donationStorageEnabled, qrPublicUrl } from "@/lib/donation-storage";
@@ -223,20 +224,12 @@ export default async function SettingsPage({
             </div>
 
             <form action={savePassportApiSettings} className="space-y-4">
-              <div className="flex items-center gap-2.5">
-                <input
-                  id="enabled"
-                  name="enabled"
-                  type="checkbox"
-                  defaultChecked={cfg.enabled}
-                  className="size-4 accent-primary"
-                />
-                <Label htmlFor="enabled">
-                  <span lang="lo" className="font-lao leading-lao">
-                    ເປີດໃຊ້ ການກວດ ຜ່ານ API
-                  </span>
-                </Label>
-              </div>
+              <EnableToggle
+                id="enabled"
+                defaultChecked={cfg.enabled}
+                lo="ເປີດໃຊ້ ການກວດ ຜ່ານ API"
+                en="Passport API check enabled"
+              />
 
               <div className="space-y-1.5">
                 <Label htmlFor="url">
@@ -331,20 +324,12 @@ export default async function SettingsPage({
             </div>
 
             <form action={saveDonationSettings} className="space-y-4">
-              <div className="flex items-center gap-2.5">
-                <input
-                  id="donation-enabled"
-                  name="enabled"
-                  type="checkbox"
-                  defaultChecked={donationCfg.enabled}
-                  className="size-4 accent-primary"
-                />
-                <Label htmlFor="donation-enabled">
-                  <span lang="lo" className="font-lao leading-lao">
-                    ເປີດໃຊ້ ການບໍລິຈາກ ໃນ ໜ້າ ເວັບ
-                  </span>
-                </Label>
-              </div>
+              <EnableToggle
+                id="donation-enabled"
+                defaultChecked={donationCfg.enabled}
+                lo="ເປີດໃຊ້ ການບໍລິຈາກ ໃນ ໜ້າ ເວັບ"
+                en="Donations shown on the public site"
+              />
 
               {/* Title */}
               <div className="grid gap-3 sm:grid-cols-2">

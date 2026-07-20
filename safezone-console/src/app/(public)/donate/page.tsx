@@ -15,7 +15,10 @@ export const metadata: Metadata = {
 };
 
 // Read live settings on every request so an admin toggle takes effect at once.
-export const dynamic = "force-dynamic";
+// Cacheable like the rest of the public site. `saveDonationSettings` calls
+// revalidatePath("/", "layout"), so staff edits show up on the next request
+// rather than after this window.
+export const revalidate = 600;
 
 /**
  * What donations pay for. Shown so a giver knows exactly where the money goes —
