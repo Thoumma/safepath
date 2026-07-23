@@ -6,57 +6,47 @@
 // (Twilio) behind a small interface so the rest of the app never touches the
 // provider directly, and degrades honestly when none is configured.
 //
-// Three states, decided entirely by environment (never the DB — these are
-// secrets, and they belong in Vercel's env, not a system_settings row a
-// browser could read):
+// Three states:
 //
-//   - configured   → TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM set;
-//                     real SMS go out.
-//   - test mode     → SMS_TEST_MODE=1; nothing is sent, every recipient is
-//                     reported as "sent" so the whole flow can be demoed
-//                     without an account (mirrors the app's TEST_MODE).
-//   - not configured→ neither; a broadcast is refused, not silently dropped.
+//   - test  → SMS_TEST_MODE=1 (env). Nothing is sent; every recipient is
+//             reported as "sent" so the whole flow can be demoed without an
+//             account (mirrors the app's TEST_MODE). This is the hackathon path.
+//   - live  → a provider is configured AND enabled in /admin/settings (stored
+//             in system_settings, token write-only). Real SMS go out.
+//   - off   → neither. A broadcast is refused, not silently dropped.
+//
+// Provider credentials live in the admin settings (like the passport-API key),
+// not env, so staff can add them the day the embassy signs up — no redeploy.
 //
 // It can only ever reach numbers already in our database — there is no way to
 // SMS "every phone in Laos". That is cell broadcast, run by the carriers and
 // the government, not something any app can originate.
 
+import { getSmsConfig, smsConfigReady, type SmsConfig } from "@/lib/settings";
+
 export type SmsMode = "live" | "test" | "off";
 
-export function smsMode(): SmsMode {
+/** Resolve what a broadcast will actually do right now. Test mode (env) wins,
+ *  so a demo never accidentally sends through a half-configured provider. */
+export async function smsMode(): Promise<SmsMode> {
   if (process.env.SMS_TEST_MODE === "1") return "test";
-  if (
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_FROM
-  ) {
-    return "live";
-  }
-  return "off";
-}
-
-/** True when a broadcast will actually do something (send or simulate). */
-export function smsReady(): boolean {
-  return smsMode() !== "off";
+  const cfg = await getSmsConfig();
+  return smsConfigReady(cfg) ? "live" : "off";
 }
 
 /** Sends one SMS through Twilio. Throws on a provider error so the caller can
- *  count it as a failure. Never called in test/off mode. */
-async function sendOne(to: string, body: string): Promise<void> {
-  const sid = process.env.TWILIO_ACCOUNT_SID!;
-  const token = process.env.TWILIO_AUTH_TOKEN!;
-  const from = process.env.TWILIO_FROM!;
-
-  const auth = Buffer.from(`${sid}:${token}`).toString("base64");
+ *  count it as a failure. Only called in live mode, with a ready config. */
+async function sendOne(cfg: SmsConfig, to: string, body: string): Promise<void> {
+  const auth = Buffer.from(`${cfg.sid}:${cfg.token}`).toString("base64");
   const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+    `https://api.twilio.com/2010-04-01/Accounts/${cfg.sid}/Messages.json`,
     {
       method: "POST",
       headers: {
         Authorization: `Basic ${auth}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
+      body: new URLSearchParams({ To: to, From: cfg.from, Body: body }).toString(),
     }
   );
   if (!res.ok) {
@@ -84,17 +74,18 @@ export async function broadcastSms(
   recipients: string[],
   body: string
 ): Promise<BroadcastResult> {
-  const mode = smsMode();
+  const mode = await smsMode();
   if (mode === "off") return { mode, sent: 0, failed: 0 };
   if (mode === "test") return { mode, sent: recipients.length, failed: 0 };
 
+  const cfg = await getSmsConfig();
   let sent = 0;
   let failed = 0;
   const BATCH = 10;
   for (let i = 0; i < recipients.length; i += BATCH) {
     const batch = recipients.slice(i, i + BATCH);
     const results = await Promise.allSettled(
-      batch.map((to) => sendOne(to, body))
+      batch.map((to) => sendOne(cfg, to, body))
     );
     for (const r of results) {
       if (r.status === "fulfilled") sent++;

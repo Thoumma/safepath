@@ -48,6 +48,54 @@ export async function setSetting(key: string, value: string, updatedBy: string) 
 }
 
 /**
+ * SMS broadcast provider (item: staff "Broadcast alert").
+ *
+ * Same shape as the passport-API config above, and for the same reason: the
+ * console is ready for a provider the day the embassy signs up for one, but
+ * ships disabled. Staff paste the Twilio credentials in /admin/settings and
+ * flip the toggle — no redeploy. Until then a broadcast either simulates
+ * (SMS_TEST_MODE=1, for demos) or is refused.
+ *
+ * The auth token is a secret. It is stored write-only exactly like the
+ * passport API key: never returned to the browser, never rendered — the form
+ * shows a masked placeholder and an empty field means "keep the saved one".
+ */
+export const SMS_KEYS = {
+  enabled: "sms_enabled",
+  sid: "sms_twilio_sid",
+  token: "sms_twilio_token",
+  from: "sms_twilio_from",
+} as const;
+
+export type SmsConfig = {
+  enabled: boolean;
+  /** Twilio Account SID (public-ish; safe to render). */
+  sid: string;
+  /** Twilio Auth Token — the secret. Server-side only, never render or return. */
+  token: string;
+  /** The sending number, E.164. */
+  from: string;
+};
+
+export async function getSmsConfig(): Promise<SmsConfig> {
+  const rows = await prisma.systemSetting.findMany({
+    where: { key: { in: Object.values(SMS_KEYS) } },
+  });
+  const get = (k: string) => rows.find((r) => r.key === k)?.value ?? "";
+  return {
+    enabled: get(SMS_KEYS.enabled) === "true",
+    sid: get(SMS_KEYS.sid),
+    token: get(SMS_KEYS.token),
+    from: get(SMS_KEYS.from),
+  };
+}
+
+/** True when a real broadcast can actually be sent through the provider. */
+export function smsConfigReady(cfg: SmsConfig): boolean {
+  return cfg.enabled && cfg.sid !== "" && cfg.token !== "" && cfg.from !== "";
+}
+
+/**
  * Donation configuration for the public website (item #14).
  *
  * Staff turn donations on and fill the details in /admin/settings — a link, a

@@ -36,7 +36,7 @@ export default async function BroadcastPage({
   // Blasting every user is an embassy decision, not a partner's.
   if (staff.role === "PARTNER") redirect("/admin");
 
-  const mode = smsMode();
+  const mode = await smsMode();
   const [reachable, recent] = await Promise.all([
     prisma.citizen.count({ where: { phone: { not: null } } }),
     prisma.auditLog.findMany({

@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, KeyRound, UserRound, LockKeyhole, QrCode } from "lucide-react";
+import { CircleCheck, CircleDashed, KeyRound, UserRound, LockKeyhole, QrCode, Radio } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, PanelTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { EnableToggle } from "@/components/enable-toggle";
 import { requireStaff } from "@/lib/auth";
-import { getDonationConfig, getPassportApiConfig, donationReady, passportApiReady } from "@/lib/settings";
+import { getDonationConfig, getPassportApiConfig, getSmsConfig, donationReady, passportApiReady, smsConfigReady } from "@/lib/settings";
 import { donationStorageEnabled, qrPublicUrl } from "@/lib/donation-storage";
 import { cn } from "@/lib/utils";
-import { changePassword, saveDonationSettings, savePassportApiSettings, updateAccountName } from "./actions";
+import { changePassword, saveDonationSettings, savePassportApiSettings, saveSmsSettings, updateAccountName } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,10 @@ const DONATION_MSG = {
   qrfail: { lo: "ບັນທຶກແລ້ວ ແຕ່ ອັບໂຫຼດ QR ບໍ່ສຳເລັດ — QR ເກົ່າ ຄືເກົ່າ", cls: "border-critical text-critical-ink" },
 } as const;
 
+const SMS_MSG = {
+  saved: { lo: "ບັນທຶກ ການຕັ້ງຄ່າ SMS ແລ້ວ", cls: "border-success text-success-ink" },
+} as const;
+
 function FormBanner({ msg }: { msg: { lo: string; cls: string } }) {
   return (
     <p lang="lo" className={cn("border bg-muted p-2.5 font-lao text-sm leading-lao", msg.cls)}>
@@ -50,7 +54,7 @@ function FormBanner({ msg }: { msg: { lo: string; cls: string } }) {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: { account?: string; pw?: string; donation?: string };
+  searchParams: { account?: string; pw?: string; donation?: string; sms?: string };
 }) {
   const staff = await requireStaff();
   const canConfigureSystem = staff.role !== "PARTNER";
@@ -63,6 +67,12 @@ export default async function SettingsPage({
   const currentQrUrl =
     donationCfg && donationCfg.qrPath ? qrPublicUrl(donationCfg.qrPath) : "";
 
+  const smsCfg = canConfigureSystem ? await getSmsConfig() : null;
+  const smsOn = smsCfg ? smsConfigReady(smsCfg) : false;
+  // The demo switch (SMS_TEST_MODE) lives in env, not this form — surface it so
+  // staff understand why broadcasts "work" even with the provider disabled.
+  const smsTestMode = process.env.SMS_TEST_MODE === "1";
+
   const accountMsg =
     searchParams.account && searchParams.account in ACCOUNT_MSG
       ? ACCOUNT_MSG[searchParams.account as keyof typeof ACCOUNT_MSG]
@@ -74,6 +84,10 @@ export default async function SettingsPage({
   const donationMsg =
     searchParams.donation && searchParams.donation in DONATION_MSG
       ? DONATION_MSG[searchParams.donation as keyof typeof DONATION_MSG]
+      : null;
+  const smsMsg =
+    searchParams.sms && searchParams.sms in SMS_MSG
+      ? SMS_MSG[searchParams.sms as keyof typeof SMS_MSG]
       : null;
 
   return (
@@ -287,6 +301,117 @@ export default async function SettingsPage({
             <p lang="lo" className="border-t border-border pt-3 font-lao text-xs leading-lao text-muted-foreground">
               ກະຊວງ ຍັງ ບໍ່ທັນ ເປີດ ບໍລິການ ນີ້ — ຟອມ ນີ້ ກຽມໄວ້ ລ່ວງໜ້າ. ເມື່ອ ໄດ້ຮັບ key ແລ້ວ
               ວາງ ໃສ່ ບ່ອນນີ້ ແລ້ວ ເປີດໃຊ້ ໄດ້ເລີຍ; ຖ້າ API ໃຊ້ບໍ່ໄດ້ ໜ້າ KYC ຈະ ກັບໄປ ກວດ ດ້ວຍມື ເອງ ອັດຕະໂນມັດ.
+            </p>
+          </CardContent>
+        </Card>
+        )}
+
+        {/* ── SMS broadcast provider — embassy staff only ──────────────── */}
+        {canConfigureSystem && smsCfg && (
+        <Card>
+          <PanelTitle
+            lo="ຜູ້ໃຫ້ບໍລິການ SMS — ແຈ້ງເຕືອນ ທົ່ວ ລະບົບ"
+            en="SMS provider · Broadcast alerts"
+          />
+          <CardContent className="space-y-5">
+            {smsMsg && <FormBanner msg={smsMsg} />}
+
+            {/* Live state — what a broadcast will actually do right now. */}
+            <div className="flex items-start gap-2.5 border border-border bg-muted p-3">
+              {smsOn ? (
+                <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-success-ink" />
+              ) : (
+                <CircleDashed aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              )}
+              <div className="min-w-0">
+                <p lang="lo" className="font-lao text-sm font-semibold leading-lao">
+                  {smsOn
+                    ? "ເປີດໃຊ້ແລ້ວ — ການ ແຈ້ງເຕືອນ ຈະ ສົ່ງ SMS ຈິງ ຜ່ານ Twilio"
+                    : smsTestMode
+                    ? "ໂໝດ ທົດສອບ (SMS_TEST_MODE) — ຈຳລອງ ການສົ່ງ, ບໍ່ ມີ SMS ອອກ ຈິງ"
+                    : "ຍັງ ບໍ່ ພ້ອມ — ໃສ່ ຂໍ້ມູນ ຜູ້ໃຫ້ບໍລິການ ແລ້ວ ເປີດໃຊ້ ເມື່ອ ພ້ອມ"}
+                </p>
+                <p lang="en" className="annotation">
+                  {smsOn
+                    ? "Enabled — broadcasts send real SMS via Twilio"
+                    : smsTestMode
+                    ? "Test mode — broadcasts are simulated, no real SMS"
+                    : "Not active — add provider details and enable when ready"}
+                </p>
+              </div>
+            </div>
+
+            <form action={saveSmsSettings} className="space-y-4">
+              <EnableToggle
+                id="sms-enabled"
+                defaultChecked={smsCfg.enabled}
+                lo="ເປີດໃຊ້ ການສົ່ງ SMS ຈິງ"
+                en="Real SMS sending enabled"
+              />
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sms-sid">
+                  <span lang="lo" className="font-lao leading-lao">Twilio Account SID</span>
+                </Label>
+                <Input
+                  id="sms-sid"
+                  name="sid"
+                  defaultValue={smsCfg.sid}
+                  placeholder="AC••••••••••••••••••••••••••••••••"
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sms-token">
+                  <span lang="lo" className="font-lao leading-lao">Auth Token</span>
+                </Label>
+                <div className="relative">
+                  <KeyRound
+                    aria-hidden
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    id="sms-token"
+                    name="token"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={smsCfg.token !== "" ? "•••••••• (ບັນທຶກໄວ້ແລ້ວ — ປ່ອຍວ່າງ = ຄືເກົ່າ)" : "ວາງ Auth Token ຈາກ Twilio"}
+                    className="pl-8 font-mono"
+                  />
+                </div>
+                {smsCfg.token !== "" && (
+                  <label className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+                    <input name="clearToken" type="checkbox" className="size-3.5 accent-primary" />
+                    <span lang="lo" className="font-lao leading-lao">
+                      ລຶບ token ທີ່ບັນທຶກໄວ້
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sms-from">
+                  <span lang="lo" className="font-lao leading-lao">ເບີ ຜູ້ສົ່ງ (From)</span>
+                </Label>
+                <Input
+                  id="sms-from"
+                  name="from"
+                  defaultValue={smsCfg.from}
+                  placeholder="+1..."
+                  className="font-mono"
+                />
+              </div>
+
+              <Button type="submit">
+                <span lang="lo" className="font-lao">ບັນທຶກ</span>
+              </Button>
+            </form>
+
+            <p lang="lo" className="border-t border-border pt-3 font-lao text-xs leading-lao text-muted-foreground">
+              <Radio aria-hidden className="mr-1 inline size-3.5 align-[-2px]" />
+              ຍັງ ບໍ່ ໄດ້ ໃຊ້ ຜູ້ໃຫ້ບໍລິການ ຈິງ ຕອນນີ້ — ຟອມ ນີ້ ກຽມ ໄວ້ ລ່ວງໜ້າ. ເມື່ອ ສະຖານທູດ ສະໝັກ Twilio
+              ແລ້ວ ວາງ ຂໍ້ມູນ ໃສ່ ບ່ອນນີ້ ແລ້ວ ເປີດໃຊ້; ຈົນກວ່າ ນັ້ນ ໜ້າ ແຈ້ງເຕືອນ ຈະ ຈຳລອງ ການສົ່ງ (ໂໝດ ທົດສອບ).
             </p>
           </CardContent>
         </Card>

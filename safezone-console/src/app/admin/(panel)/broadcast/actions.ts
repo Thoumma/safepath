@@ -30,7 +30,7 @@ export async function sendBroadcast(formData: FormData) {
   if (message.length > MAX_LEN) redirect("/admin/broadcast?b=toolong");
   if (!confirmed) redirect("/admin/broadcast?b=unconfirmed");
 
-  if (smsMode() === "off") redirect("/admin/broadcast?b=noprovider");
+  if ((await smsMode()) === "off") redirect("/admin/broadcast?b=noprovider");
 
   // Pull every reachable number. `phone` is nullable, so filter it out; a blank
   // string can never have been written (the app sends E.164), but guard anyway.

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { DONATION_KEYS, PASSPORT_API_KEYS, setSetting } from "@/lib/settings";
+import { DONATION_KEYS, PASSPORT_API_KEYS, SMS_KEYS, setSetting } from "@/lib/settings";
 import { deleteQr, donationStorageEnabled, uploadQr } from "@/lib/donation-storage";
 
 /** Update the caller's own display name. Self-service: any role. */
@@ -93,6 +93,48 @@ export async function savePassportApiSettings(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/kyc");
+}
+
+/** Save the SMS-broadcast provider config. Same authority line and secret
+ *  handling as the passport API: embassy-only, and the auth token is
+ *  write-only — an empty token field means "keep the saved one", so the
+ *  secret never round-trips through the browser. Ships disabled; a broadcast
+ *  stays in simulate/off until staff fill this in and toggle it on. */
+export async function saveSmsSettings(formData: FormData) {
+  const staff = await requireStaff();
+  if (staff.role === "PARTNER") return;
+
+  const enabled = formData.get("enabled") === "on";
+  const sid = String(formData.get("sid") ?? "").trim();
+  const from = String(formData.get("from") ?? "").trim();
+  const token = String(formData.get("token") ?? "").trim();
+  const clearToken = formData.get("clearToken") === "on";
+
+  const by = staff.email;
+  await setSetting(SMS_KEYS.enabled, enabled ? "true" : "false", by);
+  await setSetting(SMS_KEYS.sid, sid, by);
+  await setSetting(SMS_KEYS.from, from, by);
+  if (clearToken) {
+    await setSetting(SMS_KEYS.token, "", by);
+  } else if (token !== "") {
+    await setSetting(SMS_KEYS.token, token, by);
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actor: staff.fullName ?? staff.email,
+      action: "settings_update",
+      target: "sms_provider",
+      // Never log the token itself — only what changed about it.
+      detail: `enabled=${enabled} sid=${sid || "—"} from=${from || "—"} token=${
+        clearToken ? "cleared" : token !== "" ? "updated" : "unchanged"
+      }`,
+    },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/broadcast");
+  redirect("/admin/settings?sms=saved");
 }
 
 /** Allowed QR image types + size, mirroring the report-photo ingress. */
