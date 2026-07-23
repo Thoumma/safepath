@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'services/auth_service.dart';
 import 'screens/about_screen.dart';
+import 'screens/chat_screen.dart';
 import 'screens/guardian_map_screen.dart';
 import 'screens/guardian_screen.dart';
 import 'screens/home_screen.dart';
@@ -99,6 +100,10 @@ final GoRouter appRouter = GoRouter(
         parentNavigatorKey: _rootKey,
         path: '/guardian-map',
         builder: (context, state) => const GuardianMapScreen()),
+    GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/chat',
+        builder: (context, state) => const ChatScreen()),
     GoRoute(
         parentNavigatorKey: _rootKey,
         path: '/report/new',

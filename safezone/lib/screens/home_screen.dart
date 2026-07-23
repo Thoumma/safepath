@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../models/guardian.dart';
 import '../services/auth_service.dart';
 import '../services/case_service.dart';
+import '../services/chat_service.dart';
 import '../services/contact_store.dart';
 import '../services/journey_service.dart';
 import '../services/live_tracking_service.dart';
@@ -83,6 +84,12 @@ class _HomeScreenState extends State<HomeScreen> {
     // or unlock. Below the decoy early-return on purpose — resume() has its own
     // gate too, but in decoy this line must not even run.
     unawaited(JourneyService.instance.resume());
+
+    // Deliver any chat messages composed offline. Below the decoy gate — a
+    // message queued before a duress unlock must never leave afterwards —
+    // though flushOutbox() also refuses in decoy on its own. Not awaited: a slow
+    // network must not stall the dashboard.
+    unawaited(ChatService.instance.flushOutbox());
 
     // Separate round trip: it hits the network, and the local dashboard must
     // not wait on it.
@@ -206,6 +213,18 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _resolving ? null : _markSafe,
               icon: const Icon(Icons.check),
               label: Text(_resolving ? 'ກຳລັງສົ່ງ...' : 'ຂ້ອຍປອດໄພແລ້ວ'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await context.push('/chat');
+                if (mounted) _refresh();
+              },
+              icon: const Icon(Icons.forum_outlined),
+              label: const Text('ຂໍ້ຄວາມ ຈາກ ສະຖານທູດ'),
             ),
           ),
         ],

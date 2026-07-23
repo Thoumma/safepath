@@ -2,6 +2,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/pending_sos.dart';
 import 'contact_store.dart';
 import 'location_service.dart';
+import 'sms_sender.dart';
 import 'sos_outbox.dart';
 import 'sos_server.dart';
 
@@ -25,6 +26,11 @@ class SosDispatch {
   /// did next. Do not claim more than this in the UI.
   final bool smsLaunched;
 
+  /// The SMS was handed to the SIM radio directly (Android, SEND_SMS granted) —
+  /// no composer, no tap. Stronger than [smsLaunched]: the message really went,
+  /// and this is the path a duress alarm relies on to stay invisible.
+  final bool smsSentSilently;
+
   final ServerStatus serverStatus;
 
   /// The server could not be reached, so the alert was written to [SosOutbox]
@@ -38,13 +44,17 @@ class SosDispatch {
     required this.mapsUrl,
     required this.smsLaunched,
     required this.serverStatus,
+    this.smsSentSilently = false,
     this.queued = false,
   });
 
   /// True when nothing left the device *and* nothing is waiting to. A queued
   /// alert is not a failure: it is guaranteed delivery, just not yet.
   bool get isTotalFailure =>
-      !smsLaunched && serverStatus != ServerStatus.sent && !queued;
+      !smsLaunched &&
+      !smsSentSilently &&
+      serverStatus != ServerStatus.sent &&
+      !queued;
 }
 
 class SosService {
@@ -111,18 +121,33 @@ class SosService {
     // Channel 2: SMS. Works with no internet, so it is the channel of last
     // resort. Failure here is contained, not propagated.
     final contacts = await ContactStore.instance.loadContacts();
+    final message = 'SafeZone EMERGENCY. ຕຳແໜ່ງຂອງຂ້ອຍ: $mapsUrl . ກະລຸນາຊ່ວຍ.';
     var smsLaunched = false;
+    var smsSentSilently = false;
     if (contacts.isNotEmpty) {
-      try {
-        final body = Uri.encodeComponent(
-            'SafeZone EMERGENCY. ຕຳແໜ່ງຂອງຂ້ອຍ: $mapsUrl . ກະລຸນາຊ່ວຍ.');
-        final recipients = contacts.map((c) => c.phone).join(',');
-        final smsUri = Uri.parse('sms:$recipients?body=$body');
-        if (await canLaunchUrl(smsUri)) {
-          smsLaunched = await launchUrl(smsUri);
+      final recipients = contacts.map((c) => c.phone).toList();
+
+      // Prefer a silent send straight from the SIM: no composer, nothing on
+      // screen. For a duress alarm this is the only acceptable path — a composer
+      // popping up would show the attacker the alert we are hiding.
+      final silent = await SmsSender.instance
+          .trySendSilently(recipients: recipients, body: message);
+      smsSentSilently = silent == SmsSilentResult.sent;
+
+      // Composer fallback for a *normal* SOS only (no silent send available —
+      // iOS, or SEND_SMS denied). Never in duress: staying invisible outranks
+      // getting the SMS out this one way, and the server channel still carries
+      // the duress alert.
+      if (!smsSentSilently && !duress) {
+        try {
+          final body = Uri.encodeComponent(message);
+          final smsUri = Uri.parse('sms:${recipients.join(',')}?body=$body');
+          if (await canLaunchUrl(smsUri)) {
+            smsLaunched = await launchUrl(smsUri);
+          }
+        } catch (_) {
+          smsLaunched = false;
         }
-      } catch (_) {
-        smsLaunched = false;
       }
     }
 
@@ -131,6 +156,7 @@ class SosService {
           contacts.isEmpty ? null : contacts.map((c) => c.name).join(', '),
       mapsUrl: mapsUrl,
       smsLaunched: smsLaunched,
+      smsSentSilently: smsSentSilently,
       serverStatus: serverStatus,
       queued: queued,
     );

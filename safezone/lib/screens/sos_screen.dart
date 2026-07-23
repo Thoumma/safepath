@@ -18,7 +18,7 @@ class _SosScreenState extends State<SosScreen> {
   SosDispatch? _result;
   String? _error;
 
-  /// The hold gesture on [SosButton] is itself the confirmation, so this sends
+  /// The double-tap on [SosButton] is itself the confirmation, so this sends
   /// straight away — no dialog.
   Future<void> _send() async {
     setState(() {

@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "SafeZone (test mode)",
+      "cwd": "${workspaceFolder}/safezone",
+      "program": "lib/main.dart",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=TEST_MODE=true",
+        "--dart-define=CONSOLE_URL=https://safepath.ywei.online",
+        "--dart-define=SUPABASE_URL=https://qsfubvhcbyemmpxqoalw.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_nxtfLfryLfGYfppF2hTqLg_kqn0gdwF"
+      ]
+    },
+    {
+      "name": "SafeZone (production, no bypass)",
+      "cwd": "${workspaceFolder}/safezone",
+      "program": "lib/main.dart",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=CONSOLE_URL=https://safepath.ywei.online",
+        "--dart-define=SUPABASE_URL=https://qsfubvhcbyemmpxqoalw.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_nxtfLfryLfGYfppF2hTqLg_kqn0gdwF"
+      ]
+    }
+  ]
+}

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
 
-/// The emergency button. **Hold to fire, not tap** — a pocket brush or a
-/// fumbled thumb must never raise a real alarm to the embassy, and the hold is
-/// the confirmation, so there is no confirm dialog to slow a genuine emergency.
+/// The emergency button. **Double-tap to fire, not a single tap** — a pocket
+/// brush or a fumbled thumb must never raise a real alarm to the embassy. The
+/// first tap arms the button; a second tap within a short window commits, so
+/// the double-tap is itself the confirmation and there is no dialog to slow a
+/// genuine emergency.
 class SosButton extends StatefulWidget {
-  /// Called once the user has held long enough to commit.
+  /// Called once the user has double-tapped to commit.
   final VoidCallback onTriggered;
 
   const SosButton({super.key, required this.onTriggered});
@@ -19,28 +21,30 @@ class _SosButtonState extends State<SosButton> with TickerProviderStateMixin {
   /// The idle attention pulse.
   late final AnimationController _pulse;
 
-  /// Fills while the button is held; firing at the end.
-  late final AnimationController _hold;
+  /// Counts down the window to land the second tap. Drains from 1 → 0; if it
+  /// reaches 0 the button disarms without firing.
+  late final AnimationController _armWindow;
 
-  /// How long the user must hold. Long enough that a graze cannot reach it,
-  /// short enough not to feel like a struggle when it matters.
-  static const Duration _holdDuration = Duration(milliseconds: 1800);
+  /// How long after the first tap the second tap must land. Long enough to be a
+  /// deliberate double-tap, short enough that two unrelated grazes can't chain.
+  static const Duration _armWindowDuration = Duration(milliseconds: 2000);
 
   bool _reduceMotion = false;
-  bool _fired = false;
+  bool _armed = false;
 
   @override
   void initState() {
     super.initState();
     _pulse =
         AnimationController(vsync: this, duration: SafeZoneTokens.durationPulse);
-    _hold = AnimationController(vsync: this, duration: _holdDuration)
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed && !_fired) {
-          _fired = true;
-          HapticFeedback.heavyImpact();
-          widget.onTriggered();
-          _hold.reset();
+    _armWindow = AnimationController(
+      vsync: this,
+      duration: _armWindowDuration,
+      value: 1.0,
+    )..addStatusListener((status) {
+        // Window drained to empty → the first tap lapsed, stand down.
+        if (status == AnimationStatus.dismissed && _armed) {
+          setState(() => _armed = false);
         }
       });
   }
@@ -62,20 +66,22 @@ class _SosButtonState extends State<SosButton> with TickerProviderStateMixin {
   @override
   void dispose() {
     _pulse.dispose();
-    _hold.dispose();
+    _armWindow.dispose();
     super.dispose();
   }
 
-  void _onDown() {
-    _fired = false;
-    HapticFeedback.selectionClick();
-    _hold.forward();
-  }
-
-  void _onRelease() {
-    // Released before the ring filled → stand down, no alarm.
-    if (_hold.status != AnimationStatus.completed && !_fired) {
-      _hold.reverse();
+  void _onTap() {
+    if (_armed) {
+      // Second tap inside the window → fire.
+      _armWindow.stop();
+      setState(() => _armed = false);
+      HapticFeedback.heavyImpact();
+      widget.onTriggered();
+    } else {
+      // First tap → arm and start draining the window.
+      setState(() => _armed = true);
+      HapticFeedback.selectionClick();
+      _armWindow.reverse(from: 1.0);
     }
   }
 
@@ -91,23 +97,21 @@ class _SosButtonState extends State<SosButton> with TickerProviderStateMixin {
         children: [
           Semantics(
             button: true,
-            label: 'ກົດຄ້າງໄວ້ເພື່ອສົ່ງສັນຍານສຸກເສີນ',
+            label: 'ກົດສອງຄັ້ງເພື່ອສົ່ງສັນຍານສຸກເສີນ',
             child: GestureDetector(
-              onTapDown: (_) => _onDown(),
-              onTapUp: (_) => _onRelease(),
-              onTapCancel: _onRelease,
+              onTap: _onTap,
               child: SizedBox(
                 width: buttonSize * 1.5,
                 height: buttonSize * 1.5,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Idle pulse — hidden while holding and under reduced motion.
+                    // Idle pulse — hidden while armed and under reduced motion.
                     if (!_reduceMotion)
                       AnimatedBuilder(
-                        animation: Listenable.merge([_pulse, _hold]),
+                        animation: Listenable.merge([_pulse, _armWindow]),
                         builder: (context, child) {
-                          if (_hold.value > 0) return const SizedBox.shrink();
+                          if (_armed) return const SizedBox.shrink();
                           final scale = 1.0 + (_pulse.value * 0.5);
                           final opacity = 0.35 * (1.0 - _pulse.value);
                           return Container(
@@ -138,16 +142,16 @@ class _SosButtonState extends State<SosButton> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // Hold-progress ring — fills as the user holds.
+                    // Arm-window ring — drains while waiting for the second tap.
                     AnimatedBuilder(
-                      animation: _hold,
+                      animation: _armWindow,
                       builder: (context, child) {
-                        if (_hold.value == 0) return const SizedBox.shrink();
+                        if (!_armed) return const SizedBox.shrink();
                         return SizedBox(
                           width: buttonSize + 16,
                           height: buttonSize + 16,
                           child: CircularProgressIndicator(
-                            value: _hold.value,
+                            value: _armWindow.value,
                             strokeWidth: 6,
                             backgroundColor: Colors.transparent,
                             valueColor:
@@ -183,15 +187,12 @@ class _SosButtonState extends State<SosButton> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 8),
-          AnimatedBuilder(
-            animation: _hold,
-            builder: (context, child) => Text(
-              _hold.value > 0
-                  ? 'ຄ້າງໄວ້... ປ່ອຍເພື່ອຍົກເລີກ'
-                  : 'ກົດຄ້າງໄວ້ເພື່ອສົ່ງສັນຍານສຸກເສີນ',
-              textAlign: TextAlign.center,
-              style: context.text.bodyMedium,
-            ),
+          Text(
+            _armed
+                ? 'ກົດອີກຄັ້ງເພື່ອຢືນຢັນ'
+                : 'ກົດສອງຄັ້ງເພື່ອສົ່ງສັນຍານສຸກເສີນ',
+            textAlign: TextAlign.center,
+            style: context.text.bodyMedium,
           ),
         ],
       ),

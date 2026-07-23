@@ -5,6 +5,7 @@ import '../models/trusted_contact.dart';
 import '../services/auth_service.dart';
 import '../services/contact_store.dart';
 import '../services/profile_sync.dart';
+import '../services/sms_sender.dart';
 import '../theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/safe_card.dart';
@@ -38,6 +39,11 @@ class _ContactScreenState extends State<ContactScreen> {
     }
     final list = await ContactStore.instance.loadContacts();
     if (mounted) setState(() => _contacts = list);
+    // Ask for the silent-SMS permission now, while the user is calmly managing
+    // who gets alerted — so an emergency (and especially a duress alarm, which
+    // can raise no dialog) can send straight from the SIM with no tap. A no-op
+    // once granted, and Android-only.
+    if (list.isNotEmpty) unawaited(SmsSender.instance.ensurePermission());
   }
 
   @override

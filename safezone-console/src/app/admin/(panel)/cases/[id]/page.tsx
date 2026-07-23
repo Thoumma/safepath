@@ -10,6 +10,7 @@ import { Annotation } from "@/components/bilingual";
 import { SeverityBadge, StatusBadge } from "@/components/tags";
 import { CaseActions } from "@/components/case-actions";
 import { CaseChat } from "@/components/case-chat";
+import { ShareLocationButton } from "@/components/share-location-button";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { requireStaff, caseScope } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -130,6 +131,14 @@ export default async function CasePage({ params }: { params: { id: string } }) {
                   <Row k="ສະຖານທີ່" v={[c.city, c.country].filter(Boolean).join(", ") || "—"} />
                   <Row k="ອັບເດດ ຫຼ້າສຸດ" v={`${agoLao(lastLocatedAt)} ຜ່ານມາ`} />
                 </div>
+                {c.lat != null && c.lng != null && (
+                  <ShareLocationButton
+                    lat={c.lat}
+                    lng={c.lng}
+                    name={c.citizen.fullName}
+                    refNo={c.refNo}
+                  />
+                )}
               </CardContent>
             </Card>
 

@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Send the SOS/duress SMS straight from the SIM with no composer and no
+         tap (see MainActivity + SmsSender). Silent delivery is what lets the
+         duress alarm stay invisible to an attacker holding the phone. A
+         sideloaded build uses this directly; a Play release would need a
+         Permissions Declaration. Falls back to the SMS composer when denied. -->
+    <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Background live tracking while an SOS case is open (screen off / app

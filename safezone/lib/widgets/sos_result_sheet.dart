@@ -171,7 +171,9 @@ class _SosResultSheetState extends State<SosResultSheet> {
     }
 
     final d = _result!;
-    final anySent = d.smsLaunched || d.serverStatus == ServerStatus.sent;
+    final anySent = d.smsLaunched ||
+        d.smsSentSilently ||
+        d.serverStatus == ServerStatus.sent;
     // The reason can only attach to a case the server actually opened.
     final canAddReason = d.serverStatus == ServerStatus.sent;
 
@@ -284,9 +286,15 @@ class _SosResultSheetState extends State<SosResultSheet> {
 
   Widget _smsRow(SosDispatch d) {
     final tokens = context.tokens;
-    if (d.smsLaunched) {
+    if (d.smsSentSilently) {
+      // Truly sent from the SIM — safe to say so.
       return _statusRow(Icons.check_circle_outline, tokens.success,
-          'ສົ່ງ SMS ຫາ ${d.contactNames}');
+          'ສົ່ງ SMS ຫາ ${d.contactNames} ແລ້ວ');
+    }
+    if (d.smsLaunched) {
+      // Composer opened — do not claim more than that.
+      return _statusRow(Icons.check_circle_outline, tokens.success,
+          'ເປີດ SMS ຫາ ${d.contactNames}');
     }
     if (d.contactNames == null) {
       return _statusRow(Icons.remove_circle_outline, tokens.muted,
