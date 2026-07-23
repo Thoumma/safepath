@@ -41,11 +41,16 @@ if (-not $supabaseUrl -or -not $supabaseKey) {
 $consoleUrl = "http://${Ip}:3000"
 Write-Host "CONSOLE_URL  = $consoleUrl"
 Write-Host "SUPABASE_URL = $supabaseUrl"
+Write-Host "TEST_MODE    = true  (phone verification bypassed - dev only)"
 Write-Host ""
-Write-Host "Make sure the console is running:  cd ..\safezone-console; npm run dev"
+Write-Host "Make sure the console is running with APP_AUTH_TEST_MODE=1 (set in .env.local):"
+Write-Host "  cd ..\safezone-console; npm run dev"
 Write-Host ""
 
+# TEST_MODE bypasses Supabase SMS verification (the dev project has no SMS
+# provider). The console must also run with APP_AUTH_TEST_MODE=1 to honour it.
 flutter run `
     --dart-define=CONSOLE_URL=$consoleUrl `
     --dart-define=SUPABASE_URL=$supabaseUrl `
-    --dart-define=SUPABASE_PUBLISHABLE_KEY=$supabaseKey
+    --dart-define=SUPABASE_PUBLISHABLE_KEY=$supabaseKey `
+    --dart-define=TEST_MODE=true

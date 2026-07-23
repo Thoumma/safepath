@@ -41,6 +41,23 @@ export async function requireAppUser(req: Request): Promise<AppUser> {
   }
   const token = header.slice("Bearer ".length);
 
+  // Test-only bypass. When APP_AUTH_TEST_MODE=1, the app (built with
+  // --dart-define=TEST_MODE=true) sends `test:<phone>` instead of a real
+  // Supabase token, because the dev project has no SMS provider to verify a
+  // phone with. Trust the phone in the sentinel and skip Supabase. This is a
+  // real hole — it lets a caller claim ANY number — so it is gated on an env
+  // var that must never be set in production.
+  if (process.env.APP_AUTH_TEST_MODE === "1" && token.startsWith("test:")) {
+    const phone = token.slice("test:".length).trim();
+    if (!phone) {
+      throw new AppAuthError(401, "invalid test token");
+    }
+    return {
+      id: `test-${phone}`,
+      phone: phone.startsWith("+") ? phone : `+${phone}`,
+    };
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

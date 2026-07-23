@@ -117,6 +117,7 @@ export type NavItem = {
     | "ScrollText"
     | "Settings"
     | "MapPinned"
+    | "Radio"
     | "Waypoints";
   /** Embassy-only surface: hidden from PARTNER staff. */
   staffOnly?: boolean;
@@ -131,6 +132,9 @@ export const NAV: readonly NavItem[] = [
   // the social graph is close behind — both embassy-only, like KYC.
   { href: "/admin/map", lo: "ແຜນທີ່ ສົດ", en: "Live map", icon: "MapPinned", staffOnly: true },
   { href: "/admin/connect", lo: "ເຄືອຂ່າຍ ຄົນ", en: "People Connect", icon: "Waypoints", staffOnly: true },
+  // An all-users SMS alert. Embassy-only, like the live map — it can reach
+  // every registered citizen at once.
+  { href: "/admin/broadcast", lo: "ແຈ້ງເຕືອນ ທົ່ວ ລະບົບ", en: "Broadcast", icon: "Radio", staffOnly: true },
   { href: "/admin/kyc", lo: "ຢືນຢັນ ຕົວຕົນ", en: "KYC", icon: "ShieldCheck", staffOnly: true },
   { href: "/admin/logs", lo: "ບັນທຶກ ລະບົບ", en: "Activity Log", icon: "ScrollText" },
   { href: "/admin/analytics", lo: "ສະຖິຕິ", en: "Analytics", icon: "BarChart3" },
