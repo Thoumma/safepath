@@ -73,8 +73,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     // Save locally first. Even if the SMS never arrives, the details are kept
-    // and the user does not have to retype them.
-    await ProfileStore.instance.save(UserProfile(
+    // and the user does not have to retype them. Start from the existing
+    // profile so the MRZ-derived fields (birth/expiry/sex) the passport scan
+    // filled in survive an edit here — this screen never shows them, so a
+    // from-scratch rebuild would silently drop them.
+    final base = _existing ??
+        const UserProfile(fullName: '', passportNo: '', phone: '');
+    await ProfileStore.instance.save(base.copyWith(
       fullName: _name.text.trim(),
       passportNo: _passport.text.trim().toUpperCase(),
       phone: _phone.text.trim(),
@@ -130,6 +135,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// A one-line, read-only summary of the MRZ-derived fields, or null when none
+  /// are stored. These come from the passport scan (Passport screen), not
+  /// something the user types here — so they are shown, never edited, here.
+  String? _passportSummary() {
+    final p = _existing;
+    if (p == null) return null;
+    final parts = <String>[
+      if (p.birthDate.length == 6) 'ວັນເກີດ: ${_formatDob(p.birthDate)}',
+      if (p.expiryDate.length == 6) 'ໝົດອາຍຸ: ${_formatExpiry(p.expiryDate)}',
+      if (p.sex == 'M' || p.sex == 'F') 'ເພດ: ${p.sex == 'M' ? 'ຊາຍ' : 'ຍິງ'}',
+    ];
+    return parts.isEmpty ? null : parts.join('   ·   ');
+  }
+
+  /// YYMMDD → DD/MM/YYYY. The MRZ omits the century, so a two-digit birth year
+  /// after the current one (26 in 2026) must belong to the last century.
+  static String _formatDob(String yymmdd) {
+    final yy = int.tryParse(yymmdd.substring(0, 2)) ?? 0;
+    final year = yy > 26 ? 1900 + yy : 2000 + yy;
+    return '${yymmdd.substring(4)}/${yymmdd.substring(2, 4)}/$year';
+  }
+
+  /// YYMMDD → DD/MM/YYYY. Passport expiry is always a future (20xx) date.
+  static String _formatExpiry(String yymmdd) =>
+      '${yymmdd.substring(4)}/${yymmdd.substring(2, 4)}/20${yymmdd.substring(0, 2)}';
 
   @override
   Widget build(BuildContext context) {
@@ -233,6 +264,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       return null;
                     },
                   ),
+
+                  if (_passportSummary() != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainer,
+                        borderRadius: SafeZoneTokens.borderRadius,
+                        border: Border.all(
+                          color: colors.outlineVariant,
+                          width: SafeZoneTokens.ruleHair,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.badge_outlined,
+                              color: colors.primary, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _passportSummary()!,
+                              style: text.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   if (_codeSent) ...[
                     const SizedBox(height: 24),

@@ -41,7 +41,10 @@ class _PassportScreenState extends State<PassportScreen> {
     XFile? file;
     try {
       final picker = ImagePicker();
-      file = await picker.pickImage(source: source, imageQuality: 85);
+      // Keep max quality: the MRZ is tiny OCR-B text at the page bottom, and
+      // lossy recompression smears exactly the glyphs the reader depends on.
+      // The same file feeds both the encrypted vault copy and the OCR read.
+      file = await picker.pickImage(source: source, imageQuality: 100);
       if (file == null) return;
       final bytes = await file.readAsBytes();
       await PassportStore.instance.savePassport(bytes);
@@ -57,7 +60,15 @@ class _PassportScreenState extends State<PassportScreen> {
       // nothing real may change while an attacker is holding the phone.
       if (!AuthService.instance.isDecoy) {
         final mrz = await PassportOcr.instance.readMrz(file.path);
-        if (mrz != null && mounted) await _offerAutofill(mrz);
+        if (!mounted) return;
+        if (mrz != null) {
+          await _offerAutofill(mrz);
+        } else {
+          // OCR found no readable MRZ (blur, glare, or the zone was out of
+          // frame). Say so instead of failing silently, and offer manual entry
+          // so the photo isn't a dead end.
+          _offerManualEntry();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -81,16 +92,34 @@ class _PassportScreenState extends State<PassportScreen> {
     }
   }
 
+  /// OCR could not read the MRZ. Rather than leave the user wondering whether
+  /// autofill happened at all, tell them why and offer to type the details into
+  /// the same sheet.
+  void _offerManualEntry() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'ອ່ານຂໍ້ມູນຈາກພາສປອດບໍ່ໄດ້ — ຮູບອາດບໍ່ຈະແຈ້ງ ຫຼື ແຖບ MRZ ບໍ່ຢູ່ໃນກອບ.',
+        ),
+        action: SnackBarAction(
+          label: 'ປ້ອນເອງ',
+          onPressed: () => _offerAutofill(null),
+        ),
+      ),
+    );
+  }
+
   /// Shows what the MRZ said and lets the user correct it before it becomes
   /// their profile. Merges into an existing profile (phone + verification are
-  /// kept); creates an unverified one otherwise.
-  Future<void> _offerAutofill(MrzData mrz) async {
+  /// kept); creates an unverified one otherwise. A null [mrz] opens the same
+  /// sheet empty for manual entry when OCR read nothing.
+  Future<void> _offerAutofill(MrzData? mrz) async {
     final colors = context.colors;
     final tokens = context.tokens;
     final text = context.text;
 
-    final name = TextEditingController(text: mrz.fullName);
-    final passport = TextEditingController(text: mrz.passportNo);
+    final name = TextEditingController(text: mrz?.fullName ?? '');
+    final passport = TextEditingController(text: mrz?.passportNo ?? '');
 
     final save = await showModalBottomSheet<bool>(
       context: context,
@@ -106,14 +135,23 @@ class _PassportScreenState extends State<PassportScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('ອ່ານຂໍ້ມູນຈາກພາສປອດໄດ້ແລ້ວ', style: text.titleLarge),
+            Text(
+              mrz == null ? 'ປ້ອນຂໍ້ມູນພາສປອດ' : 'ອ່ານຂໍ້ມູນຈາກພາສປອດໄດ້ແລ້ວ',
+              style: text.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(
-              mrz.checksPass
-                  ? 'ກວດຄວາມຖືກຕ້ອງແລ້ວ ບັນທຶກໃສ່ໂປຣໄຟລ໌ໄດ້ເລີຍ.'
-                  : 'ບາງຕົວອັກສອນອາດອ່ານຜິດ — ກະລຸນາກວດແກ້ກ່ອນບັນທຶກ.',
+              mrz == null
+                  ? 'ພິມຊື່ ແລະ ເລກພາສປອດຂອງທ່ານໃສ່ດ້ວຍຕົນເອງ.'
+                  : mrz.checksPass
+                      ? 'ກວດຄວາມຖືກຕ້ອງແລ້ວ ບັນທຶກໃສ່ໂປຣໄຟລ໌ໄດ້ເລີຍ.'
+                      : 'ບາງຕົວອັກສອນອາດອ່ານຜິດ — ກະລຸນາກວດແກ້ກ່ອນບັນທຶກ.',
               style: text.bodyMedium!.copyWith(
-                color: mrz.checksPass ? tokens.successInk : tokens.critical,
+                color: mrz == null
+                    ? tokens.muted
+                    : mrz.checksPass
+                        ? tokens.successInk
+                        : tokens.critical,
               ),
             ),
             const SizedBox(height: 20),
@@ -127,7 +165,8 @@ class _PassportScreenState extends State<PassportScreen> {
               controller: passport,
               textCapitalization: TextCapitalization.characters,
             ),
-            if (mrz.nationality.isNotEmpty || mrz.expiryDate.length == 6) ...[
+            if (mrz != null &&
+                (mrz.nationality.isNotEmpty || mrz.expiryDate.length == 6)) ...[
               const SizedBox(height: 12),
               Text(
                 [
@@ -160,11 +199,20 @@ class _PassportScreenState extends State<PassportScreen> {
       final passportNo = passport.text.trim().toUpperCase();
       if (fullName.isNotEmpty && passportNo.isNotEmpty) {
         final existing = await ProfileStore.instance.load();
-        await ProfileStore.instance.save(
-          existing?.copyWith(fullName: fullName, passportNo: passportNo) ??
-              UserProfile(
-                  fullName: fullName, passportNo: passportNo, phone: ''),
-        );
+        var updated =
+            (existing ?? const UserProfile(fullName: '', passportNo: '', phone: ''))
+                .copyWith(fullName: fullName, passportNo: passportNo);
+        // Carry the MRZ's birth/expiry/sex through on an OCR read. Only
+        // overwrite a field the zone actually yielded — a partial read (or
+        // manual entry, mrz == null) must not blank out what was there before.
+        if (mrz != null) {
+          updated = updated.copyWith(
+            birthDate: mrz.birthDate.isEmpty ? null : mrz.birthDate,
+            expiryDate: mrz.expiryDate.isEmpty ? null : mrz.expiryDate,
+            sex: mrz.sex.isEmpty ? null : mrz.sex,
+          );
+        }
+        await ProfileStore.instance.save(updated);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(existing == null

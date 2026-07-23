@@ -26,11 +26,26 @@ class UserProfile {
   /// Guardian tab reads this flag, never [phone] alone.
   final bool phoneVerified;
 
+  /// Date of birth as printed in the passport MRZ (YYMMDD); '' when unknown.
+  /// Filled by the OCR autofill on the Passport screen — a plain read of the
+  /// document, never entered here by hand.
+  final String birthDate;
+
+  /// Passport expiry as printed in the MRZ (YYMMDD, always a 20xx date); ''
+  /// when unknown.
+  final String expiryDate;
+
+  /// 'M', 'F', or '' when unspecified — mirrors [MrzData.sex].
+  final String sex;
+
   const UserProfile({
     required this.fullName,
     required this.passportNo,
     required this.phone,
     this.phoneVerified = false,
+    this.birthDate = '',
+    this.expiryDate = '',
+    this.sex = '',
   });
 
   UserProfile copyWith({
@@ -38,12 +53,18 @@ class UserProfile {
     String? passportNo,
     String? phone,
     bool? phoneVerified,
+    String? birthDate,
+    String? expiryDate,
+    String? sex,
   }) =>
       UserProfile(
         fullName: fullName ?? this.fullName,
         passportNo: passportNo ?? this.passportNo,
         phone: phone ?? this.phone,
         phoneVerified: phoneVerified ?? this.phoneVerified,
+        birthDate: birthDate ?? this.birthDate,
+        expiryDate: expiryDate ?? this.expiryDate,
+        sex: sex ?? this.sex,
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,12 +72,20 @@ class UserProfile {
         'passportNo': passportNo,
         'phone': phone,
         'phoneVerified': phoneVerified,
+        'birthDate': birthDate,
+        'expiryDate': expiryDate,
+        'sex': sex,
       };
 
+  // The three MRZ fields default to '' so a profile stored before they existed
+  // still loads — a missing key is simply "not read yet", not an error.
   factory UserProfile.fromJson(Map<String, dynamic> j) => UserProfile(
         fullName: j['fullName'] as String,
         passportNo: j['passportNo'] as String,
         phone: j['phone'] as String,
         phoneVerified: j['phoneVerified'] as bool? ?? false,
+        birthDate: j['birthDate'] as String? ?? '',
+        expiryDate: j['expiryDate'] as String? ?? '',
+        sex: j['sex'] as String? ?? '',
       );
 }
