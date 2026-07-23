@@ -71,6 +71,33 @@ class CaseService {
     }
   }
 
+  /// Attaches an optional free-text reason to the user's just-opened case, as a
+  /// citizen message in the case thread — the "why" a duty officer sees next to
+  /// the alarm. Best-effort by design: returns false (never throws) if it did
+  /// not land or there is no open case, so a failed note can never turn a
+  /// successful SOS into an error the user has to deal with mid-emergency.
+  Future<bool> sendReason(String text) async {
+    if (_blocked) return false;
+    final body = text.trim();
+    if (body.isEmpty) return false;
+
+    try {
+      final res = await http
+          .post(
+            ConsoleConfig.caseMessagesEndpoint,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${PhoneIdentity.instance.accessToken}',
+            },
+            body: jsonEncode({'body': body}),
+          )
+          .timeout(const Duration(seconds: 10));
+      return res.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Tells the console the user is safe and closes their case.
   ///
   /// Returns false if it did not land, so the UI can keep the banner up rather

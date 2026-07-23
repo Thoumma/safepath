@@ -18,49 +18,9 @@ class _SosScreenState extends State<SosScreen> {
   SosDispatch? _result;
   String? _error;
 
-  Future<void> _confirmAndSend() async {
-    final colors = context.colors;
-    final tokens = context.tokens;
-    final text = context.text;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surfaceContainer,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: SafeZoneTokens.borderRadius,
-          side: BorderSide(
-            color: colors.outlineVariant,
-            width: SafeZoneTokens.ruleHair,
-          ),
-        ),
-        title: Text('ສົ່ງສັນຍານ SOS?', style: text.titleLarge),
-        content: Text(
-          'ແອັບຈະສົ່ງຕຳແໜ່ງ GPS ຂອງທ່ານໄປຫາຜູ້ຊ່ວຍເຫຼືອ.',
-          style: text.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('ຍົກເລີກ'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: tokens.critical,
-              foregroundColor: tokens.onCritical,
-              shape: const RoundedRectangleBorder(
-                borderRadius: SafeZoneTokens.borderRadius,
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ສົ່ງ SOS'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
+  /// The hold gesture on [SosButton] is itself the confirmation, so this sends
+  /// straight away — no dialog.
+  Future<void> _send() async {
     setState(() {
       _sending = true;
       _error = null;
@@ -258,7 +218,7 @@ class _SosScreenState extends State<SosScreen> {
 
         // Pulse Emergency SOS button
         SosButton(
-          onTap: _confirmAndSend,
+          onTriggered: _send,
         ),
       ],
     );

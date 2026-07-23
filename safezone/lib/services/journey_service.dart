@@ -38,9 +38,20 @@ class JourneyService {
   JourneyService._();
   static final JourneyService instance = JourneyService._();
 
-  /// One fix a minute. A journey is followed over hours, not seconds — three
-  /// times gentler on the battery than the SOS tracker's 20s.
-  static const Duration interval = Duration(seconds: 60);
+  /// Default cadence — one fix a minute. A journey is followed over hours, not
+  /// seconds, so this is three times gentler on the battery than the SOS
+  /// tracker's 20s.
+  static const Duration defaultInterval = Duration(seconds: 60);
+
+  /// The cadences the user may pick, in seconds: every minute, every 5
+  /// minutes, every 15 minutes. Coarser options trade freshness for battery;
+  /// anything finer than a minute belongs to the SOS tracker, not here.
+  static const List<int> intervalChoicesSeconds = <int>[60, 300, 900];
+
+  /// The active cadence. Loaded from storage before [start]; [defaultInterval]
+  /// until then. The user changes it from the journey card on Home.
+  Duration _interval = defaultInterval;
+  Duration get interval => _interval;
 
   /// Hard stop per session. Long enough for any land border run or overnight
   /// bus; short enough that a toggle forgotten for a week does not quietly
@@ -53,10 +64,12 @@ class JourneyService {
   static const Duration _postTimeout = Duration(seconds: 8);
 
   /// How recent a background-stream fix must be for [_tick] to post it instead
-  /// of paying for a one-shot read. ~2× [interval], mirroring the SOS tracker.
-  static const Duration _freshWindow = Duration(seconds: 120);
+  /// of paying for a one-shot read. ~2× the active [interval], so it scales
+  /// with the chosen cadence, mirroring the SOS tracker.
+  Duration get _freshWindow => _interval * 2;
 
   static const _kFlag = 'journey_sharing';
+  static const _kInterval = 'journey_interval_seconds';
   final _storage = const FlutterSecureStorage();
 
   Timer? _timer;
@@ -92,11 +105,63 @@ class JourneyService {
     }
 
     if (on) {
+      await _loadInterval();
       start();
     } else {
       stop();
     }
     unawaited(_putSharing(on));
+  }
+
+  /// The persisted cadence in seconds, clamped to an allowed choice. What the
+  /// journey card's frequency picker renders.
+  Future<int> intervalSeconds() async {
+    int? stored;
+    try {
+      if (intervalReadOverride != null) {
+        stored = await intervalReadOverride!();
+      } else {
+        stored = int.tryParse(await _storage.read(key: _kInterval) ?? '');
+      }
+    } catch (_) {
+      // Storage unavailable (e.g. under `flutter test`) — fall back to the
+      // default rather than letting a preference read block starting a journey.
+      stored = null;
+    }
+    final secs = stored ?? defaultInterval.inSeconds;
+    return intervalChoicesSeconds.contains(secs)
+        ? secs
+        : defaultInterval.inSeconds;
+  }
+
+  /// Persists a new cadence and, if a journey is already live, bounces the
+  /// stream onto it so the change takes effect immediately rather than at the
+  /// next relaunch.
+  Future<void> setIntervalSeconds(int seconds) async {
+    final secs = intervalChoicesSeconds.contains(seconds)
+        ? seconds
+        : defaultInterval.inSeconds;
+    _interval = Duration(seconds: secs);
+    try {
+      if (intervalWriteOverride != null) {
+        await intervalWriteOverride!(secs);
+      } else {
+        await _storage.write(key: _kInterval, value: '$secs');
+      }
+    } catch (_) {
+      // Persisting the preference is best-effort; the change still applies to
+      // the running session below even if storage is unavailable.
+    }
+    if (isSharing) {
+      stop();
+      start();
+    }
+  }
+
+  /// Loads the persisted cadence into [_interval] so [start] arms the timer at
+  /// the user's chosen rate, not the default.
+  Future<void> _loadInterval() async {
+    _interval = Duration(seconds: await intervalSeconds());
   }
 
   /// Restarts the stream after an app relaunch or unlock if the user left the
@@ -105,7 +170,10 @@ class JourneyService {
   Future<void> resume() async {
     if (AuthService.instance.isDecoy) return;
     if (!AuthService.instance.isUnlocked) return;
-    if (await isEnabled()) start();
+    if (await isEnabled()) {
+      await _loadInterval();
+      start();
+    }
   }
 
   /// Begins the periodic stream. Idempotent, like the SOS tracker, so screens
@@ -302,6 +370,12 @@ class JourneyService {
 
   @visibleForTesting
   static Future<void> Function(bool on)? flagWriteOverride;
+
+  @visibleForTesting
+  static Future<int?> Function()? intervalReadOverride;
+
+  @visibleForTesting
+  static Future<void> Function(int seconds)? intervalWriteOverride;
 
   @visibleForTesting
   void debugSetSubscription(StreamSubscription<Position>? sub) => _sub = sub;

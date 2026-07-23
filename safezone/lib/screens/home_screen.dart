@@ -14,6 +14,7 @@ import '../services/profile_store.dart';
 import '../services/sos_outbox.dart';
 import '../widgets/status_tile.dart';
 import '../widgets/sos_button.dart';
+import '../widgets/sos_result_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasContact = false;
   bool _needsProfile = false;
   bool _journeyOn = false;
+  int _journeyIntervalSeconds = 60;
   GuardianCase? _openCase;
   bool _resolving = false;
 
@@ -66,12 +68,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final contacts = await ContactStore.instance.loadContacts();
     final verified = await ProfileStore.instance.hasVerifiedPhone;
     final journeyOn = await JourneyService.instance.isEnabled();
+    final journeyInterval = await JourneyService.instance.intervalSeconds();
     if (mounted) {
       setState(() {
         _hasPassport = hp;
         _hasContact = contacts.isNotEmpty;
         _needsProfile = !verified;
         _journeyOn = journeyOn;
+        _journeyIntervalSeconds = journeyInterval;
       });
     }
 
@@ -97,6 +101,20 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       LiveTrackingService.instance.stop();
     }
+  }
+
+  /// Fires the SOS and opens the result card. The button's hold gesture has
+  /// already confirmed intent, so there is no dialog and no page — the card
+  /// does the sending itself (so the alarm is never held up by the UI) and
+  /// offers an optional reason afterwards.
+  Future<void> _triggerSos() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const SosResultSheet(),
+    );
+    if (mounted) _refresh();
   }
 
   /// Stands the user's own alarm down.
@@ -224,7 +242,10 @@ class _HomeScreenState extends State<HomeScreen> {
           width: _journeyOn ? SafeZoneTokens.rule : SafeZoneTokens.ruleHair,
         ),
       ),
-      child: SwitchListTile(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
         secondary: Icon(
           _journeyOn ? Icons.route : Icons.route_outlined,
           color: _journeyOn ? onInk : colors.onSurfaceVariant,
@@ -278,6 +299,46 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() => _journeyOn = v);
           await JourneyService.instance.setEnabled(v);
         },
+          ),
+          if (_journeyOn) _intervalPicker(),
+        ],
+      ),
+    );
+  }
+
+  /// The GPS-frequency picker, shown only while sharing is on. A one-time
+  /// setting, not a per-send prompt — the stream itself stays silent and
+  /// automatic. Coarser cadence = gentler on the battery.
+  Widget _intervalPicker() {
+    final colors = context.colors;
+    final text = context.text;
+    String label(int s) => s < 60 ? '$s ວິນາທີ' : '${s ~/ 60} ນາທີ';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('ຄວາມຖີ່ໃນການສົ່ງຕຳແໜ່ງ', style: text.bodySmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final s in JourneyService.intervalChoicesSeconds)
+                ChoiceChip(
+                  label: Text(label(s)),
+                  selected: _journeyIntervalSeconds == s,
+                  showCheckmark: false,
+                  selectedColor: colors.primaryContainer,
+                  onSelected: (sel) async {
+                    if (!sel) return;
+                    setState(() => _journeyIntervalSeconds = s);
+                    await JourneyService.instance.setIntervalSeconds(s);
+                  },
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -414,10 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (_openCase != null) _openCaseBanner(_openCase!),
 
                       SosButton(
-                        onTap: () async {
-                          await context.push('/sos');
-                          _refresh();
-                        },
+                        onTriggered: _triggerSos,
                       ),
 
                       const SizedBox(height: 28),

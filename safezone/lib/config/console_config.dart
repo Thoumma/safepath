@@ -35,6 +35,12 @@ class ConsoleConfig {
   /// `open:false` means there is no case to track and the app should stop.
   static Uri get caseTrackEndpoint => Uri.parse('$baseUrl/api/me/case/track');
 
+  /// POST a citizen message onto the user's open case (used for the optional
+  /// reason attached right after an SOS). Returns `{open}` — `open:false` means
+  /// there is no case to attach it to.
+  static Uri get caseMessagesEndpoint =>
+      Uri.parse('$baseUrl/api/me/case/messages');
+
   /// PUT the journey-sharing toggle. `sharing:false` also deletes the
   /// server-side trail — "stop sharing" must retract the history too.
   static Uri get journeyEndpoint => Uri.parse('$baseUrl/api/me/journey');
